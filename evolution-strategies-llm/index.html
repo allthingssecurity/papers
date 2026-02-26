@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution Strategies at Scale — Interactive Teaching Page</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+:root {
+    --bg: #0a0a0f;
+    --bg-card: #12121a;
+    --text: #e0e0e8;
+    --text-muted: #8888aa;
+    --accent-1: #00d4ff;
+    --accent-2: #7b2ff7;
+    --accent-3: #ff6b6b;
+    --accent-gradient: linear-gradient(135deg, #00d4ff, #7b2ff7);
+    --neon-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);line-height:1.7;overflow-x:hidden}
+.hero{position:relative;min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;overflow:hidden}
+#hero-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+.hero-content{position:relative;z-index:1;max-width:800px}
+.hero h1{font-size:clamp(1.6rem,4vw,2.8rem);font-weight:700;background:var(--accent-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;line-height:1.2}
+.hero .authors{color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;max-width:650px}
+.hero .venue{color:var(--accent-1);font-size:0.9rem;letter-spacing:2px}
+.hero .abstract{color:var(--text-muted);font-size:0.82rem;margin-top:1.5rem;max-width:650px;line-height:1.6}
+.tab-bar{position:sticky;top:0;z-index:100;display:flex;justify-content:center;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.tab-btn{background:none;border:none;color:var(--text-muted);font-family:var(--font-mono);font-size:0.9rem;padding:1rem 2rem;cursor:pointer;transition:var(--transition);position:relative;letter-spacing:1px;text-transform:uppercase}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,0.03)}
+.tab-btn.active{color:var(--accent-1)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent-gradient);box-shadow:var(--neon-glow)}
+.tab-content{display:none;max-width:960px;margin:0 auto;padding:3rem 2rem;animation:fadeIn 0.4s ease}
+.tab-content.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section{background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:2rem;margin-bottom:2rem;transition:var(--transition)}
+.section:hover{border-color:rgba(0,212,255,0.15);box-shadow:var(--neon-glow)}
+.section h2{font-size:1.4rem;background:var(--accent-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem}
+.section h3{font-size:1.1rem;color:var(--accent-1);margin:1.5rem 0 0.75rem}
+.section p{color:var(--text);margin-bottom:1rem;font-size:0.95rem}
+.section ul{margin:0.5rem 0 1rem 1.5rem;color:var(--text);font-size:0.95rem}
+.section li{margin-bottom:0.4rem}
+.hl{color:var(--accent-1);font-weight:600}
+.viz-container{position:relative;width:100%;height:400px;border-radius:var(--radius);overflow:hidden;margin:1.5rem 0;border:1px solid rgba(255,255,255,0.06);background:#08080d}
+.viz-container canvas{width:100%!important;height:100%!important;display:block}
+.viz-overlay{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.5rem;background:linear-gradient(transparent,rgba(10,10,15,0.9));pointer-events:none;z-index:2}
+.viz-overlay p{color:var(--text-muted);font-size:0.8rem;margin:0}
+.viz-label{position:absolute;top:1rem;left:1rem;background:rgba(10,10,15,0.8);border:1px solid rgba(0,212,255,0.3);border-radius:var(--radius-sm);padding:0.4rem 0.8rem;font-size:0.75rem;color:var(--accent-1);z-index:2;letter-spacing:1px;text-transform:uppercase}
+.slider-controls{display:flex;flex-wrap:wrap;gap:1rem;margin:1rem 0;padding:1rem;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm)}
+.slider-group{flex:1;min-width:200px}
+.slider-group label{display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.3rem}
+.slider-group label span{color:var(--accent-1);font-weight:600}
+.slider-group input[type="range"]{width:100%;-webkit-appearance:none;appearance:none;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;outline:none}
+.slider-group input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent-1);cursor:pointer;box-shadow:var(--neon-glow)}
+.math-block{background:rgba(0,0,0,0.4);border-left:3px solid var(--accent-2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:1.5rem;margin:1.5rem 0;overflow-x:auto}
+.var-chips{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.06)}
+.var-chip{display:inline-flex;align-items:center;gap:0.4rem;background:rgba(123,47,247,0.15);border:1px solid rgba(123,47,247,0.3);border-radius:20px;padding:0.25rem 0.75rem;font-size:0.8rem}
+.var-chip .vs{color:var(--accent-2);font-weight:700}
+.var-chip .vd{color:var(--text-muted)}
+.code-block{background:#0d0d14;border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius-sm);padding:1.5rem;margin:1.5rem 0;overflow-x:auto;font-family:var(--font-mono);font-size:0.85rem;line-height:1.6;color:#c8c8d8;white-space:pre}
+.code-block .kw{color:var(--accent-2)}.code-block .fn{color:var(--accent-1)}.code-block .st{color:#98c379}.code-block .cm{color:#5c6370;font-style:italic}.code-block .num{color:#d19a66}
+.quiz{background:var(--bg-card);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:2rem;margin:2rem 0}
+.quiz h3{color:var(--accent-1);margin-bottom:1.5rem;font-size:1rem}
+.quiz-question{margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+.quiz-question:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.quiz-question p.q-text{font-weight:600;margin-bottom:0.75rem;color:var(--text)}
+.quiz-option{display:block;width:100%;text-align:left;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:0.6rem 1rem;margin-bottom:0.5rem;color:var(--text);font-family:var(--font-mono);font-size:0.85rem;cursor:pointer;transition:var(--transition)}
+.quiz-option:hover{background:rgba(0,212,255,0.05);border-color:rgba(0,212,255,0.2)}
+.quiz-option.correct{background:rgba(0,200,100,0.15);border-color:rgba(0,200,100,0.4);color:#4ade80}
+.quiz-option.incorrect{background:rgba(255,80,80,0.15);border-color:rgba(255,80,80,0.4);color:var(--accent-3)}
+.quiz-explanation{display:none;margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(123,47,247,0.1);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-muted);border-left:3px solid var(--accent-2)}
+.quiz-explanation.show{display:block}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.stat-row{display:flex;gap:1rem;margin:1rem 0;flex-wrap:wrap}
+.stat-box{flex:1;min-width:130px;background:rgba(0,0,0,0.3);border:1px solid rgba(0,212,255,0.15);border-radius:var(--radius-sm);padding:1rem;text-align:center}
+.stat-box .sv{font-size:1.8rem;font-weight:700;background:var(--accent-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-box .sl{font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem}
+.result-table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.8rem}
+.result-table th,.result-table td{padding:0.5rem 0.6rem;border:1px solid rgba(255,255,255,0.06);text-align:center}
+.result-table th{background:rgba(0,212,255,0.08);color:var(--accent-1);font-weight:600}
+.result-table .best{color:#4ade80;font-weight:700}
+.result-table .hack{color:var(--accent-3);font-style:italic}
+.vs-box{display:flex;gap:1.5rem;margin:1.5rem 0}
+.vs-card{flex:1;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);padding:1.2rem;border:1px solid rgba(255,255,255,0.06)}
+.vs-card h4{font-size:0.9rem;margin-bottom:0.5rem}
+.vs-card p{font-size:0.85rem;color:var(--text-muted);margin:0}
+.vs-card.es-card{border-color:rgba(0,212,255,0.2)}
+.vs-card.es-card h4{color:var(--accent-1)}
+.vs-card.rl-card{border-color:rgba(123,47,247,0.2)}
+.vs-card.rl-card h4{color:var(--accent-2)}
+@media(max-width:768px){.hero{min-height:50vh;padding:2rem 1rem}.tab-content{padding:2rem 1rem}.section{padding:1.5rem}.viz-container{height:300px}.tab-btn{padding:0.75rem 1rem;font-size:0.8rem}.vs-box{flex-direction:column}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ═══════ HERO ═══════ -->
+<div class="hero">
+    <div id="hero-canvas"></div>
+    <div class="hero-content">
+        <h1>Evolution Strategies at Scale: LLM Fine-Tuning Beyond Reinforcement Learning</h1>
+        <p class="authors">Xin Qiu, Yulu Gan, Conor F. Hayes, Qiyao Liang, Yinggan Xu, Roberto Dailey, Elliot Meyerson, Babak Hodjat, Risto Miikkulainen</p>
+        <p class="venue">2025 &middot; Cognizant AI Lab &amp; MIT &amp; UT Austin</p>
+        <p class="abstract">The first successful application of Evolution Strategies to full-parameter fine-tuning of billion-parameter LLMs &mdash; outperforming PPO and GRPO in accuracy, stability, sample efficiency, and resistance to reward hacking, all without backpropagation.</p>
+    </div>
+</div>
+
+<!-- ═══════ TAB BAR ═══════ -->
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="beginner">Beginner</button>
+    <button class="tab-btn" data-tab="intermediate">Intermediate</button>
+    <button class="tab-btn" data-tab="advanced">Advanced</button>
+</div>
+
+<!-- ═══════ BEGINNER ═══════ -->
+<div class="tab-content active" id="tab-beginner">
+
+    <div class="section reveal">
+        <h2>Why Should You Care?</h2>
+        <p>Right now, making AI models smarter after their initial training almost always uses a technique called <span class="hl">Reinforcement Learning</span> (RL). Think of RL like training a dog: you watch every action, then reward or punish each one.</p>
+        <p>This paper shows there's a radically different approach: <span class="hl">Evolution Strategies</span> (ES). Instead of watching every action, you create <em>30 slightly different copies</em> of the AI, test them all, and keep the traits of the best performers. Like natural selection, but for neural networks.</p>
+        <p>The shocking result? This "evolutionary" approach <span class="hl">beats the standard RL methods</span> across the board &mdash; and it doesn't even need to compute gradients (the mathematical backbone of modern deep learning).</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>The Big Idea: Evolve, Don't Backpropagate</h2>
+        <p>Imagine you're trying to find the highest point on a mountain range, but you're blindfolded:</p>
+        <div class="vs-box">
+            <div class="vs-card rl-card">
+                <h4>RL Approach (PPO/GRPO)</h4>
+                <p>You feel the slope under your feet at each tiny step and walk uphill. But if the terrain is jagged, you keep stumbling into local traps.</p>
+            </div>
+            <div class="vs-card es-card">
+                <h4>ES Approach (This Paper)</h4>
+                <p>You scatter 30 friends randomly around you, they all report their altitude, and you move toward the highest reports. The jagged terrain gets smoothed out by the crowd's average.</p>
+            </div>
+        </div>
+
+        <div class="viz-container" id="viz-beginner-1">
+            <div class="viz-label">ES vs RL Exploration</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Scroll to zoom &middot; Blue = ES candidates &middot; Purple = RL path</p></div>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.85rem;">The landscape shows a reward surface. ES scatters candidates (blue dots) across the parameter space, while RL follows a single gradient path (purple trail). Notice how ES naturally avoids getting stuck in local peaks.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>The Key Results</h2>
+        <div class="stat-row">
+            <div class="stat-box"><div class="sv">60.5%</div><div class="sl">ES accuracy on Countdown (3B model)</div></div>
+            <div class="stat-box"><div class="sv">43.8%</div><div class="sl">Best RL baseline on same task</div></div>
+            <div class="stat-box"><div class="sv">N=30</div><div class="sl">Population size (not 10,000!)</div></div>
+            <div class="stat-box"><div class="sv">0</div><div class="sl">Gradients computed</div></div>
+        </div>
+        <p>ES dominated on <em>every single model</em> tested &mdash; from tiny 0.5B to large 8B parameter models, across two different model families (Qwen and Llama). Perhaps most remarkably, it used <span class="hl">less than 20% of the training samples</span> that RL methods needed.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Why Doesn't the AI "Cheat"?</h2>
+        <p>A major problem with RL fine-tuning is <span class="hl">reward hacking</span> &mdash; the AI finds weird loopholes to get high scores without actually being helpful. For example, when asked to be concise, RL-trained models sometimes output meaningless symbols to minimize length.</p>
+        <p>ES naturally avoids this because it doesn't optimize a single model intensely. Instead, it evaluates a <em>population</em> of models, and extreme, hacky behaviors average out. It's like how a committee decision is usually more sensible than one person's extreme opinion.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Key Takeaway</h2>
+        <p>You can make large language models significantly smarter by <span class="hl">evolving their weights</span> rather than computing gradients &mdash; and it works better, is more stable, uses fewer samples, and resists gaming the reward. This opens an entirely new paradigm for AI training that requires <em>only inference</em>, no backpropagation.</p>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: How does ES explore the solution space?</p>
+            <button class="quiz-option" data-correct="false">A) It computes gradients and follows them uphill</button>
+            <button class="quiz-option" data-correct="true">B) It creates perturbed copies of the model and tests which ones perform best</button>
+            <button class="quiz-option" data-correct="false">C) It randomly changes one parameter at a time</button>
+            <div class="quiz-explanation">ES creates N=30 slightly different versions of the model by adding random noise to all parameters simultaneously. Each copy is tested, and the original model is updated toward the noise patterns that produced the best results.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: What is "reward hacking"?</p>
+            <button class="quiz-option" data-correct="false">A) When the AI learns to hack into the reward system</button>
+            <button class="quiz-option" data-correct="true">B) When the AI finds unintended shortcuts to get high rewards without actually being useful</button>
+            <button class="quiz-option" data-correct="false">C) When humans manipulate the AI's rewards</button>
+            <div class="quiz-explanation">Reward hacking occurs when the model exploits loopholes in the reward function. For example, GRPO-trained models sometimes output meaningless symbol strings to maximize conciseness rewards, rather than producing genuinely concise answers. ES naturally avoids this.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q3: How many perturbed models does ES need per iteration?</p>
+            <button class="quiz-option" data-correct="false">A) 10,000 (like previous ES research suggested)</button>
+            <button class="quiz-option" data-correct="true">B) Just 30</button>
+            <button class="quiz-option" data-correct="false">C) 1 million</button>
+            <div class="quiz-explanation">One of the paper's most surprising findings is that a population of just N=30 suffices, even for models with billions of parameters. Previous theoretical predictions suggested quadratic scaling with dimensionality, but LLMs' intrinsic low-dimensional structure may explain this.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ INTERMEDIATE ═══════ -->
+<div class="tab-content" id="tab-intermediate">
+
+    <div class="section reveal">
+        <h2>How It Works: The ES Pipeline</h2>
+        <p>The ES fine-tuning loop has three phases repeated for \(T\) iterations:</p>
+        <h3>Phase 1: Perturbation</h3>
+        <p>Sample \(N=30\) random noise vectors from a standard Gaussian distribution. Each noise vector has the <em>same dimensionality as the entire model</em> (billions of parameters). Rather than storing these huge vectors, only the random seeds are saved &mdash; the noise can be regenerated identically from the seed.</p>
+        <h3>Phase 2: Evaluation (Massively Parallel)</h3>
+        <p>For each noise vector, perturb the model's weights <em>in-place</em>, run inference on the task, compute a reward, then restore the original weights. Each of the 30 evaluations is independent and can run on a separate GPU.</p>
+        <h3>Phase 3: Update</h3>
+        <p>Z-score normalize the rewards, then update parameters as a weighted sum of noise vectors scaled by their rewards. This moves the model toward the noise patterns that correlated with high performance.</p>
+
+        <div class="viz-container" id="viz-intermediate-1">
+            <div class="viz-label">ES Pipeline Flow</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Watch perturbation, evaluation, and update phases cycle</p></div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Core Equations</h2>
+
+        <h3>The ES Gradient Estimator</h3>
+        <p>The key theoretical insight: ES is actually computing an <em>unbiased estimate</em> of the gradient of a Gaussian-smoothed fitness function:</p>
+        <div class="math-block">
+            $$ \nabla_\theta \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ F(\boldsymbol{\theta} + \sigma \boldsymbol{\epsilon}) \right] = \frac{1}{\sigma} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ F(\boldsymbol{\theta} + \sigma \boldsymbol{\epsilon}) \, \boldsymbol{\epsilon} \right] $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="vs">\(F\)</span> <span class="vd">fitness/reward function</span></span>
+                <span class="var-chip"><span class="vs">\(\theta\)</span> <span class="vd">model parameters (billions)</span></span>
+                <span class="var-chip"><span class="vs">\(\sigma\)</span> <span class="vd">noise scale = 0.001</span></span>
+                <span class="var-chip"><span class="vs">\(\epsilon\)</span> <span class="vd">Gaussian noise vector</span></span>
+            </div>
+        </div>
+        <p>This means ES is <em>not</em> random search &mdash; it's performing principled gradient estimation through random function evaluations. The Gaussian smoothing acts as a convolution kernel that softens jagged reward landscapes.</p>
+
+        <h3>Parameter Update Rule</h3>
+        <div class="math-block">
+            $$ \boldsymbol{\theta}_t \leftarrow \boldsymbol{\theta}_{t-1} + \alpha \cdot \frac{1}{N} \sum_{n=1}^{N} \hat{R}_n \, \boldsymbol{\epsilon}_n $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="vs">\(\alpha\)</span> <span class="vd">learning rate = 5&times;10<sup>-4</sup></span></span>
+                <span class="var-chip"><span class="vs">\(N\)</span> <span class="vd">population size = 30</span></span>
+                <span class="var-chip"><span class="vs">\(\hat{R}_n\)</span> <span class="vd">z-score normalized reward</span></span>
+                <span class="var-chip"><span class="vs">\(\epsilon_n\)</span> <span class="vd">n-th noise vector</span></span>
+            </div>
+        </div>
+
+        <h3>Z-Score Reward Normalization</h3>
+        <div class="math-block">
+            $$ \hat{R}_n = \frac{R_n - \bar{R}}{\text{std}(R_1, \ldots, R_N)} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="vs">\(\bar{R}\)</span> <span class="vd">mean reward in population</span></span>
+                <span class="var-chip"><span class="vs">\(\text{std}\)</span> <span class="vd">standard deviation</span></span>
+            </div>
+        </div>
+        <p>Normalizing rewards within each generation ensures consistent update magnitudes regardless of absolute reward scale.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Parameter-Space vs. Action-Space Exploration</h2>
+        <p>This is the conceptual crux of why ES works differently from RL:</p>
+        <div class="vs-box">
+            <div class="vs-card es-card">
+                <h4>ES: Parameter-Space</h4>
+                <p>Noise is injected into the <em>weights</em> once. A single perturbation affects the entire response trajectory coherently. This is equivalent to Gaussian smoothing of the reward landscape.</p>
+            </div>
+            <div class="vs-card rl-card">
+                <h4>RL: Action-Space</h4>
+                <p>Noise is injected at <em>each token</em> via sampling. Each token decision is independently noisy. Credit assignment must trace rewards back through hundreds of tokens.</p>
+            </div>
+        </div>
+
+        <div class="viz-container" id="viz-intermediate-2">
+            <div class="viz-label">Reward Landscape Smoothing</div>
+            <div class="viz-overlay"><p>Adjust sigma to see how ES smooths a jagged reward landscape</p></div>
+        </div>
+        <div class="slider-controls">
+            <div class="slider-group">
+                <label>Noise Scale (sigma) <span id="val-sigma">0.001</span></label>
+                <input type="range" id="slider-sigma" min="0.0001" max="0.01" step="0.0001" value="0.001"
+                       oninput="document.getElementById('val-sigma').textContent=parseFloat(this.value).toFixed(4); if(window.onSlider_sigma) window.onSlider_sigma(+this.value)">
+            </div>
+            <div class="slider-group">
+                <label>Landscape Jaggedness <span id="val-jagged">5</span></label>
+                <input type="range" id="slider-jagged" min="1" max="15" step="1" value="5"
+                       oninput="document.getElementById('val-jagged').textContent=this.value; if(window.onSlider_jagged) window.onSlider_jagged(+this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Benchmark Results: Countdown Task</h2>
+        <p>The Countdown task requires producing a valid math expression hitting a target number. ES dominates across all models:</p>
+        <table class="result-table">
+            <tr><th>Model</th><th>Base</th><th>PPO</th><th>GRPO-z</th><th>Dr.GRPO-v</th><th>ES (ours)</th></tr>
+            <tr><td>Qwen-0.5B</td><td>0.1</td><td>0.3</td><td>0.5</td><td>13.5</td><td class="best">14.4</td></tr>
+            <tr><td>Qwen-1.5B</td><td>0.7</td><td>14.2</td><td>14.8</td><td>31.0</td><td class="best">37.3</td></tr>
+            <tr><td>Qwen-3B</td><td>10.0</td><td>20.1</td><td>32.5</td><td>43.8</td><td class="best">60.5</td></tr>
+            <tr><td>Qwen-7B</td><td>31.2</td><td>55.1</td><td>52.8</td><td>57.5</td><td class="best">66.8</td></tr>
+            <tr><td>Llama-1B</td><td>0.4</td><td>11.2</td><td>13.0</td><td>13.9</td><td class="best">16.8</td></tr>
+            <tr><td>Llama-3B</td><td>3.2</td><td>35.3</td><td>38.8</td><td>47.8</td><td class="best">51.6</td></tr>
+            <tr><td>Llama-8B</td><td>8.1</td><td>42.8</td><td>51.3</td><td>50.2</td><td class="best">61.2</td></tr>
+        </table>
+    </div>
+
+    <div class="section reveal">
+        <h2>Reward Hacking & Stability</h2>
+        <p>On the conciseness task, GRPO with low KL penalty exhibited reward hacking (outputting nonsensical symbols). ES achieved comparable reward with <span class="hl">15.5x lower variance</span> and <span class="hl">no explicit KL penalty needed</span>:</p>
+        <table class="result-table">
+            <tr><th>Method</th><th>&beta;</th><th>Reward</th><th>KL Divergence</th><th>Status</th></tr>
+            <tr><td>GRPO</td><td>0.00</td><td class="hack">0.867&plusmn;0.054</td><td class="hack">0.861&plusmn;0.614</td><td class="hack">Hacked!</td></tr>
+            <tr><td>GRPO</td><td>0.01</td><td class="hack">0.871&plusmn;0.060</td><td class="hack">1.354&plusmn;0.873</td><td class="hack">Hacked!</td></tr>
+            <tr><td>GRPO</td><td>0.017</td><td>0.911&plusmn;0.038</td><td>1.591&plusmn;0.811</td><td>OK</td></tr>
+            <tr><td>ES</td><td>none</td><td class="best">0.889&plusmn;0.004</td><td class="best">0.274&plusmn;0.096</td><td style="color:#4ade80">Stable</td></tr>
+            <tr><td>ES</td><td>none</td><td class="best">0.919&plusmn;0.008</td><td class="best">0.813&plusmn;0.212</td><td style="color:#4ade80">Stable</td></tr>
+        </table>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: Why is ES actually performing principled optimization, not random search?</p>
+            <button class="quiz-option" data-correct="true">A) It computes an unbiased estimate of the gradient of a Gaussian-smoothed fitness function</button>
+            <button class="quiz-option" data-correct="false">B) It uses a neural network to predict which perturbations will work</button>
+            <button class="quiz-option" data-correct="false">C) It memorizes which random seeds produced good results</button>
+            <div class="quiz-explanation">The key theoretical result is that the expectation of F(&theta; + &sigma;&epsilon;)&middot;&epsilon; / &sigma; equals the gradient of the Gaussian-smoothed fitness. So ES is doing gradient descent, just estimating the gradient via function evaluations instead of backpropagation.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: How does ES handle the memory challenge of storing 30 noise vectors the size of the entire model?</p>
+            <button class="quiz-option" data-correct="false">A) It compresses the noise vectors using LoRA</button>
+            <button class="quiz-option" data-correct="true">B) It only stores random seeds and regenerates noise on-the-fly</button>
+            <button class="quiz-option" data-correct="false">C) It uses a separate server to store the noise vectors</button>
+            <div class="quiz-explanation">This is one of the seven scalability techniques: rather than storing N full noise tensors (which would require N copies of model memory), only 30 integer seeds are stored. The identical noise vectors can be regenerated deterministically from these seeds when needed.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q3: Why is ES naturally resistant to reward hacking?</p>
+            <button class="quiz-option" data-correct="false">A) It uses a special reward hacking detector</button>
+            <button class="quiz-option" data-correct="false">B) It adds a large KL divergence penalty</button>
+            <button class="quiz-option" data-correct="true">C) It evaluates a population, so extreme/hacky behaviors average out</button>
+            <div class="quiz-explanation">ES optimizes over a distribution of solutions (population of 30), not a single model. Reward hacking exploits specific, narrow loopholes that a single model might find, but these don't survive averaging across a diverse population. Additionally, ES uses no explicit KL penalty — the population-based smoothing provides natural regularization.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q4: What does "zeroth-order optimization" mean?</p>
+            <button class="quiz-option" data-correct="false">A) Optimization that uses zero learning rate</button>
+            <button class="quiz-option" data-correct="true">B) Optimization that only needs function values, not gradients</button>
+            <button class="quiz-option" data-correct="false">C) The simplest possible optimization algorithm</button>
+            <div class="quiz-explanation">In optimization theory, "order" refers to what derivatives you use: zeroth-order = just function values (f(x)), first-order = gradients (&nabla;f), second-order = Hessians (&nabla;&sup2;f). ES is zeroth-order because it only evaluates F(&theta;+&sigma;&epsilon;) — it never computes &nabla;F.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ ADVANCED ═══════ -->
+<div class="tab-content" id="tab-advanced">
+
+    <div class="section reveal">
+        <h2>Technical Deep Dive: Natural Evolution Strategies</h2>
+        <p>ES can be derived from the <span class="hl">REINFORCE trick</span> applied to a Gaussian search distribution over parameters. Consider the search distribution \(\pi(\boldsymbol{\theta} \mid \boldsymbol{\mu}, \sigma^2 \mathbf{I}) = \mathcal{N}(\boldsymbol{\mu}, \sigma^2 \mathbf{I})\). We want to maximize:</p>
+        <div class="math-block">
+            $$ J(\boldsymbol{\mu}) = \mathbb{E}_{\boldsymbol{\theta} \sim \pi} \left[ F(\boldsymbol{\theta}) \right] = \int F(\boldsymbol{\theta}) \, \pi(\boldsymbol{\theta} \mid \boldsymbol{\mu}, \sigma^2 \mathbf{I}) \, d\boldsymbol{\theta} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="vs">\(J\)</span> <span class="vd">expected fitness</span></span>
+                <span class="var-chip"><span class="vs">\(\mu\)</span> <span class="vd">mean of search distribution</span></span>
+                <span class="var-chip"><span class="vs">\(\pi\)</span> <span class="vd">Gaussian search distribution</span></span>
+            </div>
+        </div>
+        <p>Applying the log-derivative trick (score function estimator):</p>
+        <div class="math-block">
+            $$
+            \begin{aligned}
+            \nabla_{\boldsymbol{\mu}} J &= \int F(\boldsymbol{\theta}) \, \nabla_{\boldsymbol{\mu}} \pi(\boldsymbol{\theta}) \, d\boldsymbol{\theta} \\
+            &= \int F(\boldsymbol{\theta}) \, \pi(\boldsymbol{\theta}) \, \nabla_{\boldsymbol{\mu}} \log \pi(\boldsymbol{\theta}) \, d\boldsymbol{\theta} \\
+            &= \mathbb{E}_{\boldsymbol{\theta} \sim \pi} \left[ F(\boldsymbol{\theta}) \, \nabla_{\boldsymbol{\mu}} \log \pi(\boldsymbol{\theta}) \right]
+            \end{aligned}
+            $$
+        </div>
+        <p>For \(\boldsymbol{\theta} = \boldsymbol{\mu} + \sigma \boldsymbol{\epsilon}\), \(\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})\), we get \(\nabla_{\boldsymbol{\mu}} \log \pi = \frac{\boldsymbol{\epsilon}}{\sigma}\), yielding the ES gradient estimator:</p>
+        <div class="math-block">
+            $$ \nabla_{\boldsymbol{\mu}} J = \frac{1}{\sigma} \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ F(\boldsymbol{\mu} + \sigma \boldsymbol{\epsilon}) \, \boldsymbol{\epsilon} \right] $$
+        </div>
+        <p>This shows ES is equivalent to REINFORCE where the "policy" is over parameters rather than actions, and the "actions" are weight perturbations rather than token selections.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Gaussian Smoothing Interpretation</h2>
+        <p>The objective \(J(\boldsymbol{\mu})\) can be rewritten as a convolution:</p>
+        <div class="math-block">
+            $$ J(\boldsymbol{\mu}) = (F * \mathcal{G}_\sigma)(\boldsymbol{\mu}) $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="vs">\(*\)</span> <span class="vd">convolution operator</span></span>
+                <span class="var-chip"><span class="vs">\(\mathcal{G}_\sigma\)</span> <span class="vd">Gaussian kernel with bandwidth \(\sigma\)</span></span>
+            </div>
+        </div>
+        <p>This means ES is not optimizing the raw fitness \(F\) but a smoothed version \(F * \mathcal{G}_\sigma\). For small \(\sigma\), this closely approximates \(F\) while eliminating sharp local optima. For the conciseness task, where GRPO's reward landscape has deceptive local optima (reward hacking), ES's Gaussian smoothing naturally regularizes against these.</p>
+
+        <div class="viz-container" id="viz-advanced-1">
+            <div class="viz-label">Gaussian Smoothing Effect</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Left = raw landscape &middot; Right = ES-smoothed</p></div>
+        </div>
+        <div class="slider-controls">
+            <div class="slider-group">
+                <label>Sigma (smoothing bandwidth) <span id="val-adv-sigma">0.001</span></label>
+                <input type="range" id="slider-adv-sigma" min="0.0001" max="0.005" step="0.0001" value="0.001"
+                       oninput="document.getElementById('val-adv-sigma').textContent=parseFloat(this.value).toFixed(4); if(window.onSlider_advSigma) window.onSlider_advSigma(+this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Why N=30 Suffices: Intrinsic Dimensionality</h2>
+        <p>Vemula et al. (2019) predicted sample complexity \(N = O(d^2)\) where \(d\) is the parameter count. For \(d = 10^9\), this would require \(N \sim 10^{18}\) — clearly infeasible. The paper's \(N=30\) success suggests the <span class="hl">intrinsic dimensionality</span> of the LLM fine-tuning landscape is dramatically lower than the ambient dimensionality.</p>
+        <p>This is consistent with findings in the LoRA literature that fine-tuning operates in a low-rank subspace. ES may be implicitly discovering and exploiting this structure through its z-score normalization, which acts as a form of dimensionality-adaptive search.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Implementation: Scalable ES Algorithm</h2>
+        <div class="code-block"><span class="kw">import</span> torch
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">class</span> <span class="fn">EvolutionStrategies</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model, N=<span class="num">30</span>, sigma=<span class="num">0.001</span>, lr=<span class="num">5e-4</span>):
+        self.model = model
+        self.N = N
+        self.sigma = sigma
+        self.lr = lr
+
+    <span class="kw">def</span> <span class="fn">step</span>(self, reward_fn, prompts):
+        seeds = [np.random.randint(<span class="num">0</span>, <span class="num">2</span>**<span class="num">32</span>) <span class="kw">for</span> _ <span class="kw">in</span> range(self.N)]
+        rewards = []
+
+        <span class="cm"># Phase 1-2: Perturb & Evaluate (parallelizable)</span>
+        <span class="kw">for</span> seed <span class="kw">in</span> seeds:
+            self._apply_noise(seed, scale=self.sigma)
+            R = reward_fn(self.model, prompts)  <span class="cm"># greedy decode</span>
+            rewards.append(R)
+            self._apply_noise(seed, scale=-self.sigma)  <span class="cm"># restore</span>
+
+        <span class="cm"># Phase 3: Z-score normalize & update</span>
+        rewards = np.array(rewards)
+        rewards = (rewards - rewards.mean()) / (rewards.std() + <span class="num">1e-8</span>)
+
+        <span class="kw">for</span> n, seed <span class="kw">in</span> enumerate(seeds):
+            <span class="cm"># Decomposed update: layer-by-layer, seed-by-seed</span>
+            rng = torch.Generator().manual_seed(seed)
+            <span class="kw">for</span> p <span class="kw">in</span> self.model.parameters():
+                noise = torch.randn_like(p, generator=rng)
+                p.data += self.lr / self.N * rewards[n] * noise
+
+    <span class="kw">def</span> <span class="fn">_apply_noise</span>(self, seed, scale):
+        rng = torch.Generator().manual_seed(seed)
+        <span class="kw">for</span> p <span class="kw">in</span> self.model.parameters():
+            p.data += scale * torch.randn_like(p, generator=rng)</div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Pareto Front Analysis: Reward vs. KL Divergence</h2>
+        <p>The paper's most striking visualization is the Pareto front of reward vs. KL divergence. ES dominates GRPO on this front — achieving higher reward at lower KL divergence without any explicit KL penalty term:</p>
+
+        <div class="viz-container" id="viz-advanced-2">
+            <div class="viz-label">Pareto Front: Reward vs KL</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Blue = ES front &middot; Purple = GRPO front &middot; Red = reward hacked</p></div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Open Questions</h2>
+        <ul>
+            <li><span class="hl">Theoretical sample complexity</span>: Why does \(N=30\) work? The gap between \(O(d^2)\) theory and \(N=30\) practice is enormous. Formal analysis of ES in the presence of low intrinsic dimensionality is needed.</li>
+            <li><span class="hl">Hybrid ES-RL</span>: Could parameter-space and action-space exploration be combined? E.g., ES for coarse exploration, RL for fine-grained refinement.</li>
+            <li><span class="hl">Adaptive \(\sigma\) scheduling</span>: The paper uses fixed \(\sigma = 0.001\). Could annealing or adaptive bandwidth improve convergence?</li>
+            <li><span class="hl">Non-isotropic covariance</span>: Full NES uses learned covariance. Could CMA-ES-style covariance adaptation improve ES for LLMs?</li>
+            <li><span class="hl">Process rewards</span>: ES currently only handles outcome-level rewards. Can it be extended to process-level (per-token) reward signals?</li>
+            <li><span class="hl">Pretraining with ES</span>: If ES works for fine-tuning, could it work for training from scratch? The follow-up paper "Hyperscale ES" explores this for RWKV.</li>
+        </ul>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: The ES gradient estimator is derived from which technique?</p>
+            <button class="quiz-option" data-correct="false">A) Reparameterization trick (Kingma & Welling)</button>
+            <button class="quiz-option" data-correct="true">B) Log-derivative trick / score function estimator (REINFORCE)</button>
+            <button class="quiz-option" data-correct="false">C) Straight-through estimator (Bengio et al.)</button>
+            <div class="quiz-explanation">The ES gradient estimator uses the log-derivative trick (also called the score function estimator or REINFORCE trick): &nabla; E[F] = E[F &middot; &nabla; log &pi;]. For Gaussian &pi;, &nabla; log &pi; = &epsilon;/&sigma;, yielding the ES formula. This is the same trick used in REINFORCE for RL, but applied to parameter space instead of action space.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: Why does Gaussian smoothing help with reward hacking?</p>
+            <button class="quiz-option" data-correct="true">A) It eliminates sharp, narrow optima that correspond to degenerate/hacky solutions</button>
+            <button class="quiz-option" data-correct="false">B) It adds noise to the reward function to confuse the optimizer</button>
+            <button class="quiz-option" data-correct="false">C) It clips extreme reward values</button>
+            <div class="quiz-explanation">Reward hacking typically exploits narrow, sharp peaks in the reward landscape — degenerate solutions that score very high in a tiny region of parameter space. Gaussian smoothing (convolution with G_&sigma;) acts as a low-pass filter that eliminates these narrow peaks while preserving broad, robust optima. The smoothed objective J = F * G_&sigma; literally cannot represent features sharper than the bandwidth &sigma;.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ SCRIPTS ═══════ -->
+<script>
+const activeScenes = [];
+function createScene(containerId, setupFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    const w = container.clientWidth, h = container.clientHeight;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, w/h, 0.1, 1000);
+    camera.position.set(0, 2, 5);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x08080d, 1);
+    container.appendChild(renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+    scene.add(new THREE.AmbientLight(0x404060, 0.5));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+    dl.position.set(5, 10, 5);
+    scene.add(dl);
+    const pl = new THREE.PointLight(0x00d4ff, 0.5, 50);
+    pl.position.set(-5, 5, -5);
+    scene.add(pl);
+    const state = setupFn(scene, camera, renderer, controls) || {};
+    let animId;
+    function animate() { animId = requestAnimationFrame(animate); controls.update(); if (state.onAnimate) state.onAnimate(); renderer.render(scene, camera); }
+    animate();
+    function onResize() { const ww=container.clientWidth, hh=container.clientHeight; camera.aspect=ww/hh; camera.updateProjectionMatrix(); renderer.setSize(ww,hh); }
+    window.addEventListener('resize', onResize);
+    const sd = { scene,camera,renderer,controls,animationId:animId,container,onResize,
+        dispose(){cancelAnimationFrame(this.animationId);window.removeEventListener('resize',this.onResize);this.controls.dispose();this.renderer.dispose();this.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});if(this.container.contains(this.renderer.domElement))this.container.removeChild(this.renderer.domElement)}
+    };
+    activeScenes.push(sd);
+    return sd;
+}
+function cleanupScenes(){while(activeScenes.length>0)activeScenes.pop().dispose()}
+
+function makeLabel(text, color, size) {
+    const c=document.createElement('canvas');const ctx=c.getContext('2d');
+    c.width=256;c.height=64;ctx.font=`bold ${size||24}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,128,32);
+    const tex=new THREE.CanvasTexture(c);const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false});
+    const s=new THREE.Sprite(mat);s.scale.set(2.5,0.6,1);return s;
+}
+
+// ── BEGINNER SCENES ──
+function buildBeginnerScenes() {
+    createScene('viz-beginner-1', (scene, camera) => {
+        camera.position.set(0, 8, 12);
+
+        // Create a jagged reward landscape
+        const res = 60;
+        const geo = new THREE.PlaneGeometry(12, 12, res, res);
+        const pos = geo.attributes.position.array;
+        for (let i = 0; i < pos.length / 3; i++) {
+            const x = pos[i*3], z = pos[i*3+1];
+            pos[i*3+2] = Math.sin(x*1.5)*Math.cos(z*1.2)*1.5 + Math.sin(x*3)*0.4 + Math.cos(z*4)*0.3 + Math.exp(-((x-2)**2+(z-1)**2)*0.3)*2;
+        }
+        const colors = new Float32Array(pos.length);
+        let yMin=Infinity, yMax=-Infinity;
+        for(let i=0;i<pos.length/3;i++){yMin=Math.min(yMin,pos[i*3+2]);yMax=Math.max(yMax,pos[i*3+2])}
+        for(let i=0;i<pos.length/3;i++){const t=(pos[i*3+2]-yMin)/(yMax-yMin||1);colors[i*3]=t*0.2;colors[i*3+1]=0.1+t*0.3;colors[i*3+2]=0.3+t*0.7}
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geo.computeVertexNormals();
+        geo.rotateX(-Math.PI/2);
+        const mat = new THREE.MeshPhongMaterial({vertexColors:true, side:THREE.DoubleSide, transparent:true, opacity:0.7, shininess:40});
+        scene.add(new THREE.Mesh(geo, mat));
+        scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.05})));
+
+        // ES candidate points (blue spheres scattered on surface)
+        const esCandidates = [];
+        for (let i = 0; i < 30; i++) {
+            const sg = new THREE.SphereGeometry(0.12, 8, 8);
+            const sm = new THREE.MeshPhongMaterial({color:0x00d4ff, emissive:0x00d4ff, emissiveIntensity:0.4});
+            const mesh = new THREE.Mesh(sg, sm);
+            const x = (Math.random()-0.5)*10;
+            const z = (Math.random()-0.5)*10;
+            const y = Math.sin(x*1.5)*Math.cos(z*1.2)*1.5 + Math.sin(x*3)*0.4 + Math.cos(z*4)*0.3 + Math.exp(-((x-2)**2+(z-1)**2)*0.3)*2;
+            mesh.position.set(x, y+0.15, z);
+            scene.add(mesh);
+            esCandidates.push({mesh, baseX:x, baseZ:z, phase:Math.random()*Math.PI*2});
+        }
+
+        // RL gradient path (purple trail)
+        const rlPoints = [];
+        let rx=-4, rz=-3;
+        for(let i=0;i<80;i++){
+            const ry = Math.sin(rx*1.5)*Math.cos(rz*1.2)*1.5 + Math.sin(rx*3)*0.4 + Math.cos(rz*4)*0.3 + Math.exp(-((rx-2)**2+(rz-1)**2)*0.3)*2;
+            rlPoints.push(new THREE.Vector3(rx, ry+0.1, rz));
+            // Follow approximate gradient with noise
+            rx += 0.08 + (Math.random()-0.5)*0.05;
+            rz += 0.05 + (Math.random()-0.5)*0.05;
+        }
+        const rlGeo = new THREE.BufferGeometry().setFromPoints(rlPoints);
+        scene.add(new THREE.Line(rlGeo, new THREE.LineBasicMaterial({color:0x7b2ff7, linewidth:2, transparent:true, opacity:0.7})));
+
+        const lES = makeLabel('ES Candidates', '#00d4ff');
+        lES.position.set(-3, 4, -4);
+        scene.add(lES);
+        const lRL = makeLabel('RL Path', '#7b2ff7');
+        lRL.position.set(3, 4, 3);
+        scene.add(lRL);
+
+        let time = 0;
+        return { onAnimate() {
+            time += 0.02;
+            esCandidates.forEach((c, i) => {
+                c.mesh.position.x = c.baseX + Math.sin(time + c.phase)*0.3;
+                c.mesh.position.z = c.baseZ + Math.cos(time*0.7 + c.phase)*0.3;
+                const x=c.mesh.position.x, z=c.mesh.position.z;
+                c.mesh.position.y = Math.sin(x*1.5)*Math.cos(z*1.2)*1.5 + Math.sin(x*3)*0.4 + Math.cos(z*4)*0.3 + Math.exp(-((x-2)**2+(z-1)**2)*0.3)*2 + 0.15;
+            });
+        }};
+    });
+}
+
+// ── INTERMEDIATE SCENES ──
+function buildIntermediateScenes() {
+    // Pipeline flow
+    createScene('viz-intermediate-1', (scene, camera) => {
+        camera.position.set(0, 3, 12);
+
+        const stages = [
+            {label:'Model θ', x:-7, color:0x00d4ff, count:1},
+            {label:'Perturb', x:-3, color:0x7b2ff7, count:4},
+            {label:'Evaluate', x:1, color:0xff6b6b, count:4},
+            {label:'Update', x:5, color:0x4ade80, count:1},
+            {label:'θ new', x:9, color:0x00d4ff, count:1}
+        ];
+
+        const allNodes = [];
+        const layerNodes = [];
+        stages.forEach(s => {
+            const nodes = [];
+            for(let i=0;i<s.count;i++){
+                const y = (i-(s.count-1)/2)*2;
+                const geo = new THREE.SphereGeometry(0.35,16,16);
+                const mat = new THREE.MeshPhongMaterial({color:s.color,emissive:s.color,emissiveIntensity:0.3});
+                const m = new THREE.Mesh(geo,mat);
+                m.position.set(s.x,y,0);
+                scene.add(m);
+                nodes.push(m);
+                allNodes.push(m);
+                const gm = new THREE.SpriteMaterial({color:s.color,transparent:true,opacity:0.15,blending:THREE.AdditiveBlending});
+                const gs = new THREE.Sprite(gm);gs.scale.set(1.5,1.5,1);gs.position.copy(m.position);scene.add(gs);
+            }
+            layerNodes.push(nodes);
+            const lb = makeLabel(s.label, '#'+s.color.toString(16).padStart(6,'0'));
+            lb.position.set(s.x, -s.count*1.2 - 1, 0);
+            scene.add(lb);
+        });
+
+        const edges = [];
+        for(let li=0;li<layerNodes.length-1;li++){
+            for(const a of layerNodes[li])for(const b of layerNodes[li+1]){
+                const pts=[a.position.clone(),b.position.clone()];
+                scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.06})));
+                edges.push({from:a.position,to:b.position});
+            }
+        }
+
+        const pCount=50;const pPos=new Float32Array(pCount*3);const pProg=new Float32Array(pCount);const pEdge=new Uint16Array(pCount);
+        for(let i=0;i<pCount;i++){pEdge[i]=Math.floor(Math.random()*edges.length);pProg[i]=Math.random()}
+        const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+        scene.add(new THREE.Points(pGeo,new THREE.PointsMaterial({color:0x00d4ff,size:0.1,transparent:true,opacity:0.7})));
+
+        return{onAnimate(){
+            for(let i=0;i<pCount;i++){
+                pProg[i]+=0.005;if(pProg[i]>1){pProg[i]=0;pEdge[i]=Math.floor(Math.random()*edges.length)}
+                const e=edges[pEdge[i]];const t=pProg[i];
+                pPos[i*3]=e.from.x+(e.to.x-e.from.x)*t;pPos[i*3+1]=e.from.y+(e.to.y-e.from.y)*t;pPos[i*3+2]=0;
+            }
+            pGeo.attributes.position.needsUpdate=true;
+        }};
+    });
+
+    // Reward landscape smoothing
+    let sigmaVal = 0.001, jaggedVal = 5;
+    createScene('viz-intermediate-2', (scene, camera) => {
+        camera.position.set(8, 7, 8);
+
+        const res = 50;
+        const geo = new THREE.PlaneGeometry(10, 10, res, res);
+        const pos = geo.attributes.position.array;
+        const colors = new Float32Array(pos.length);
+
+        function updateSurface() {
+            let yMin=Infinity,yMax=-Infinity;
+            const smoothFactor = 1 + sigmaVal * 5000; // visualize sigma effect
+            for(let i=0;i<pos.length/3;i++){
+                const x=pos[i*3],z=pos[i*3+1];
+                const raw = Math.sin(x*jaggedVal*0.3)*Math.cos(z*jaggedVal*0.25)*2 + Math.sin(x*jaggedVal*0.8)*0.5 + Math.exp(-((x-1)**2+(z-1)**2)*0.5)*3;
+                // Gaussian smoothing approximation: reduce high-freq amplitude
+                const smoothed = Math.sin(x*jaggedVal*0.3/smoothFactor)*Math.cos(z*jaggedVal*0.25/smoothFactor)*2 + Math.sin(x*jaggedVal*0.8/smoothFactor)*0.5/smoothFactor + Math.exp(-((x-1)**2+(z-1)**2)*0.5/smoothFactor)*3;
+                pos[i*3+2] = smoothed;
+                yMin=Math.min(yMin,smoothed);yMax=Math.max(yMax,smoothed);
+            }
+            for(let i=0;i<pos.length/3;i++){
+                const t=(pos[i*3+2]-yMin)/(yMax-yMin||1);
+                colors[i*3]=t;colors[i*3+1]=0.2+0.3*(1-Math.abs(t-0.5)*2);colors[i*3+2]=1-t;
+            }
+            geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+            geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true;geo.computeVertexNormals();
+        }
+        updateSurface();
+        geo.rotateX(-Math.PI/2);
+
+        scene.add(new THREE.Mesh(geo, new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:0.85,shininess:40})));
+        scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.06})));
+
+        window.onSlider_sigma = v => { sigmaVal=v; updateSurface(); };
+        window.onSlider_jagged = v => { jaggedVal=v; updateSurface(); };
+
+        return{onAnimate(){}};
+    });
+}
+
+// ── ADVANCED SCENES ──
+function buildAdvancedScenes() {
+    // Gaussian smoothing side-by-side
+    let advSigma = 0.001;
+    createScene('viz-advanced-1', (scene, camera) => {
+        camera.position.set(0, 8, 12);
+
+        const res = 40;
+        // Raw surface (left)
+        const rawGeo = new THREE.PlaneGeometry(5, 5, res, res);
+        const rawPos = rawGeo.attributes.position.array;
+        const rawCol = new Float32Array(rawPos.length);
+        // Smoothed surface (right)
+        const smGeo = new THREE.PlaneGeometry(5, 5, res, res);
+        const smPos = smGeo.attributes.position.array;
+        const smCol = new Float32Array(smPos.length);
+
+        function updateBoth() {
+            const sf = 1 + advSigma * 8000;
+            let yMin=Infinity,yMax=-Infinity;
+            for(let i=0;i<rawPos.length/3;i++){
+                const x=rawPos[i*3],z=rawPos[i*3+1];
+                const raw = Math.sin(x*3)*Math.cos(z*2.5)*2 + Math.sin(x*8)*0.7 + Math.cos(z*6)*0.5 + Math.exp(-((x-0.5)**2+z**2)*0.8)*3;
+                rawPos[i*3+2] = raw;
+                const sm = Math.sin(x*3/sf)*Math.cos(z*2.5/sf)*2 + Math.sin(x*8/sf)*0.7/sf + Math.cos(z*6/sf)*0.5/sf + Math.exp(-((x-0.5)**2+z**2)*0.8/Math.max(sf*0.5,1))*3;
+                smPos[i*3+2] = sm;
+                yMin=Math.min(yMin,raw,sm);yMax=Math.max(yMax,raw,sm);
+            }
+            for(let i=0;i<rawPos.length/3;i++){
+                const tr=(rawPos[i*3+2]-yMin)/(yMax-yMin||1);
+                rawCol[i*3]=tr*0.8;rawCol[i*3+1]=0.1+tr*0.2;rawCol[i*3+2]=0.2+tr*0.6;
+                const ts=(smPos[i*3+2]-yMin)/(yMax-yMin||1);
+                smCol[i*3]=ts;smCol[i*3+1]=0.2+0.3*(1-Math.abs(ts-0.5)*2);smCol[i*3+2]=1-ts;
+            }
+            rawGeo.setAttribute('color',new THREE.BufferAttribute(rawCol,3));
+            smGeo.setAttribute('color',new THREE.BufferAttribute(smCol,3));
+            rawGeo.attributes.position.needsUpdate=true;rawGeo.attributes.color.needsUpdate=true;rawGeo.computeVertexNormals();
+            smGeo.attributes.position.needsUpdate=true;smGeo.attributes.color.needsUpdate=true;smGeo.computeVertexNormals();
+        }
+        updateBoth();
+        rawGeo.rotateX(-Math.PI/2); smGeo.rotateX(-Math.PI/2);
+
+        const rawMesh = new THREE.Mesh(rawGeo, new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:0.8}));
+        rawMesh.position.x = -3.5;
+        scene.add(rawMesh);
+
+        const smMesh = new THREE.Mesh(smGeo, new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:0.8}));
+        smMesh.position.x = 3.5;
+        scene.add(smMesh);
+
+        const lRaw = makeLabel('Raw F(θ)', '#ff6b6b');lRaw.position.set(-3.5,4,0);scene.add(lRaw);
+        const lSm = makeLabel('Smoothed F*G', '#00d4ff');lSm.position.set(3.5,4,0);scene.add(lSm);
+
+        window.onSlider_advSigma = v => { advSigma=v; updateBoth(); };
+
+        return{onAnimate(){}};
+    });
+
+    // Pareto front: reward vs KL
+    createScene('viz-advanced-2', (scene, camera) => {
+        camera.position.set(0, 2, 8);
+        controls = camera; // needed for label
+
+        // Axes
+        const axLen=6;
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(axLen,0,0)]),new THREE.LineBasicMaterial({color:0xff4444,transparent:true,opacity:0.4})));
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,axLen,0)]),new THREE.LineBasicMaterial({color:0x44ff44,transparent:true,opacity:0.4})));
+
+        const lX=makeLabel('KL Divergence →','#ff6666');lX.position.set(3,-0.8,0);scene.add(lX);
+        const lY=makeLabel('Reward →','#66ff66');lY.position.set(-1.5,3,0);scene.add(lY);
+
+        // ES points (lower KL, good reward)
+        const esData = [
+            {kl:0.274, r:0.889}, {kl:0.813, r:0.919}, {kl:0.4, r:0.895}, {kl:0.55, r:0.905}, {kl:0.15, r:0.870}
+        ];
+        // GRPO points (higher KL, similar/worse reward, some hacked)
+        const grpoData = [
+            {kl:0.861, r:0.867, hack:true}, {kl:1.354, r:0.871, hack:true}, {kl:1.591, r:0.911, hack:false}, {kl:1.384, r:0.881, hack:false}, {kl:2.0, r:0.920, hack:false}
+        ];
+
+        function plotPoint(d, color, isHack) {
+            const x = d.kl * 3; // scale KL to x
+            const y = (d.r - 0.85) * 50; // scale reward to y
+            const geo = new THREE.SphereGeometry(isHack?0.12:0.15, 12, 12);
+            const mat = new THREE.MeshPhongMaterial({color, emissive:color, emissiveIntensity:0.3, wireframe:isHack});
+            const m = new THREE.Mesh(geo, mat);
+            m.position.set(x, y, 0);
+            scene.add(m);
+            if(!isHack){
+                const gm=new THREE.SpriteMaterial({color,transparent:true,opacity:0.2,blending:THREE.AdditiveBlending});
+                const gs=new THREE.Sprite(gm);gs.scale.set(0.8,0.8,1);gs.position.copy(m.position);scene.add(gs);
+            }
+            return m;
+        }
+
+        esData.forEach(d => plotPoint(d, 0x00d4ff, false));
+        grpoData.forEach(d => plotPoint(d, d.hack ? 0xff6b6b : 0x7b2ff7, d.hack));
+
+        // Pareto front lines
+        const esSorted = esData.sort((a,b)=>a.kl-b.kl);
+        const esPts = esSorted.map(d=>new THREE.Vector3(d.kl*3,(d.r-0.85)*50,0));
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(esPts),new THREE.LineBasicMaterial({color:0x00d4ff,transparent:true,opacity:0.4})));
+
+        const grpoSorted = grpoData.filter(d=>!d.hack).sort((a,b)=>a.kl-b.kl);
+        const grpoPts = grpoSorted.map(d=>new THREE.Vector3(d.kl*3,(d.r-0.85)*50,0));
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(grpoPts),new THREE.LineBasicMaterial({color:0x7b2ff7,transparent:true,opacity:0.4})));
+
+        const lES=makeLabel('ES','#00d4ff');lES.position.set(1,3.5,0);scene.add(lES);
+        const lGRPO=makeLabel('GRPO','#7b2ff7');lGRPO.position.set(4.5,3.5,0);scene.add(lGRPO);
+        const lHack=makeLabel('Hacked!','#ff6b6b');lHack.position.set(3,0.5,0);scene.add(lHack);
+
+        return{onAnimate(){}};
+    });
+}
+
+function initScenes(tabId) {
+    if(tabId==='beginner') buildBeginnerScenes();
+    else if(tabId==='intermediate') buildIntermediateScenes();
+    else if(tabId==='advanced') buildAdvancedScenes();
+}
+
+// ── Tab Switching ──
+const tabBtns=document.querySelectorAll('.tab-btn');
+const tabContents=document.querySelectorAll('.tab-content');
+function switchTab(tabId){
+    cleanupScenes();
+    tabBtns.forEach(b=>b.classList.toggle('active',b.dataset.tab===tabId));
+    tabContents.forEach(tc=>tc.classList.toggle('active',tc.id==='tab-'+tabId));
+    initScenes(tabId);
+    renderMathInElement(document.getElementById('tab-'+tabId),{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false});
+    document.querySelectorAll('#tab-'+tabId+' .reveal').forEach(el=>{el.classList.remove('visible');revealObserver.observe(el)});
+}
+tabBtns.forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+// ── Quiz ──
+document.addEventListener('click',function(e){
+    const o=e.target.closest('.quiz-option');if(!o)return;
+    const q=o.closest('.quiz-question');if(q.classList.contains('answered'))return;q.classList.add('answered');
+    const ok=o.dataset.correct==='true';o.classList.add(ok?'correct':'incorrect');
+    if(!ok)q.querySelector('[data-correct="true"]').classList.add('correct');
+    const ex=q.querySelector('.quiz-explanation');if(ex)ex.classList.add('show');
+});
+
+// ── Scroll Reveal ──
+const revealObserver=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');revealObserver.unobserve(e.target)}})},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>revealObserver.observe(el));
+
+// ── Hero ──
+(function(){
+    const container=document.getElementById('hero-canvas');if(!container)return;
+    const hero=container.closest('.hero');const w=hero.clientWidth,h=hero.clientHeight;
+    const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);camera.position.z=30;
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setSize(w,h);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setClearColor(0x0a0a0f,1);container.appendChild(renderer.domElement);
+
+    // Population of evolving particles
+    const popCount = 30;
+    const popMeshes = [];
+    for(let i=0;i<popCount;i++){
+        const geo = new THREE.DodecahedronGeometry(0.3 + Math.random()*0.3, 0);
+        const mat = new THREE.MeshPhongMaterial({color:new THREE.Color().setHSL(0.55+Math.random()*0.15,0.8,0.5),wireframe:true,transparent:true,opacity:0.4});
+        const m = new THREE.Mesh(geo,mat);
+        m.position.set((Math.random()-0.5)*40,(Math.random()-0.5)*25,(Math.random()-0.5)*20-10);
+        m.userData = {vx:(Math.random()-0.5)*0.02,vy:(Math.random()-0.5)*0.02,vz:(Math.random()-0.5)*0.01,rotSpeed:Math.random()*0.02};
+        scene.add(m);popMeshes.push(m);
+    }
+
+    // Background particles
+    const count=300;const positions=new Float32Array(count*3);const colors=new Float32Array(count*3);
+    for(let i=0;i<count;i++){
+        positions[i*3]=(Math.random()-0.5)*60;positions[i*3+1]=(Math.random()-0.5)*40;positions[i*3+2]=(Math.random()-0.5)*30-5;
+        const t=Math.random();colors[i*3]=t*0.1;colors[i*3+1]=t*0.6+(1-t)*0.2;colors[i*3+2]=t*1.0+(1-t)*0.8;
+    }
+    const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));pGeo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+    scene.add(new THREE.Points(pGeo,new THREE.PointsMaterial({size:0.12,vertexColors:true,transparent:true,opacity:0.5})));
+    scene.add(new THREE.AmbientLight(0x404060,0.3));const dl=new THREE.DirectionalLight(0xffffff,0.5);dl.position.set(5,10,5);scene.add(dl);
+
+    function animate(){
+        requestAnimationFrame(animate);
+        const pArr=pGeo.attributes.position.array;
+        for(let i=0;i<count;i++){pArr[i*3+1]+=Math.sin(Date.now()*0.001+i)*0.002;pArr[i*3]+=Math.cos(Date.now()*0.0008+i*0.5)*0.001}
+        pGeo.attributes.position.needsUpdate=true;
+        popMeshes.forEach(m=>{
+            m.position.x+=m.userData.vx;m.position.y+=m.userData.vy;m.position.z+=m.userData.vz;
+            m.rotation.x+=m.userData.rotSpeed;m.rotation.y+=m.userData.rotSpeed*0.7;
+            if(Math.abs(m.position.x)>20)m.userData.vx*=-1;if(Math.abs(m.position.y)>13)m.userData.vy*=-1;
+        });
+        renderer.render(scene,camera);
+    }
+    animate();
+    window.addEventListener('resize',()=>{const ww=hero.clientWidth,hh=hero.clientHeight;camera.aspect=ww/hh;camera.updateProjectionMatrix();renderer.setSize(ww,hh)});
+})();
+
+// ── KaTeX & Init ──
+document.addEventListener('DOMContentLoaded',()=>{
+    renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false});
+    initScenes('beginner');
+});
+</script>
+</body>
+</html>
