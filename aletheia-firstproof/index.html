@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aletheia tackles FirstProof autonomously — Interactive Teaching Page</title>
+
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<!-- KaTeX 0.16.9 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<style>
+:root {
+    --bg: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-card-hover: #1a1a2e;
+    --text: #e0e0e8;
+    --text-muted: #8888aa;
+    --accent-1: #00d4ff;
+    --accent-2: #7b2ff7;
+    --accent-3: #ff6b6b;
+    --accent-gradient: linear-gradient(135deg, #00d4ff, #7b2ff7);
+    --accent-gradient-2: linear-gradient(135deg, #7b2ff7, #ff6b6b);
+    --neon-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+    --neon-glow-purple: 0 0 20px rgba(123, 47, 247, 0.3);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    line-height: 1.7;
+    overflow-x: hidden;
+}
+.hero {
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    overflow: hidden;
+}
+#hero-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+}
+.hero h1 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+.hero .authors {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    max-width: 600px;
+}
+.hero .year {
+    color: var(--accent-1);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+.hero .abstract {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 1.5rem;
+    max-width: 650px;
+    line-height: 1.6;
+}
+.tab-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.tab-btn.active { color: var(--accent-1); }
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-gradient);
+    box-shadow: var(--neon-glow);
+}
+.tab-content {
+    display: none;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    animation: fadeIn 0.4s ease;
+}
+.tab-content.active { display: block; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.section {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: var(--transition);
+}
+.section:hover {
+    border-color: rgba(0, 212, 255, 0.15);
+    box-shadow: var(--neon-glow);
+}
+.section h2 {
+    font-size: 1.4rem;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+.section h3 {
+    font-size: 1.1rem;
+    color: var(--accent-1);
+    margin: 1.5rem 0 0.75rem;
+}
+.section p { color: var(--text); margin-bottom: 1rem; font-size: 0.95rem; }
+.section ul { margin: 0.5rem 0 1rem 1.5rem; color: var(--text); font-size: 0.95rem; }
+.section li { margin-bottom: 0.4rem; }
+.highlight { color: var(--accent-1); font-weight: 600; }
+.viz-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: #08080d;
+}
+.viz-container canvas { width: 100% !important; height: 100% !important; display: block; }
+.viz-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(transparent, rgba(10,10,15,0.9));
+    pointer-events: none;
+    z-index: 2;
+}
+.viz-overlay p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
+.viz-label {
+    position: absolute;
+    top: 1rem; left: 1rem;
+    background: rgba(10,10,15,0.8);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    color: var(--accent-1);
+    z-index: 2;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.slider-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: var(--radius-sm);
+}
+.slider-group { flex: 1; min-width: 200px; }
+.slider-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+.slider-group label span { color: var(--accent-1); font-weight: 600; }
+.slider-group input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+}
+.slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent-1);
+    cursor: pointer;
+    box-shadow: var(--neon-glow);
+}
+.math-block {
+    background: rgba(0,0,0,0.4);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+}
+.var-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.var-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(123, 47, 247, 0.15);
+    border: 1px solid rgba(123, 47, 247, 0.3);
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+.var-chip .var-symbol { color: var(--accent-2); font-weight: 700; }
+.var-chip .var-desc { color: var(--text-muted); }
+.code-block {
+    background: #0d0d14;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius-sm);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #c8c8d8;
+    white-space: pre;
+}
+.code-block .kw { color: var(--accent-2); }
+.code-block .fn { color: var(--accent-1); }
+.code-block .st { color: #98c379; }
+.code-block .cm { color: #5c6370; font-style: italic; }
+.code-block .num { color: #d19a66; }
+.quiz {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+}
+.quiz h3 { color: var(--accent-1); margin-bottom: 1.5rem; font-size: 1rem; }
+.quiz-question {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.quiz-question:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.quiz-question p.q-text { font-weight: 600; margin-bottom: 0.75rem; color: var(--text); }
+.quiz-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.quiz-option:hover { background: rgba(0, 212, 255, 0.05); border-color: rgba(0, 212, 255, 0.2); }
+.quiz-option.correct { background: rgba(0, 200, 100, 0.15); border-color: rgba(0, 200, 100, 0.4); color: #4ade80; }
+.quiz-option.incorrect { background: rgba(255, 80, 80, 0.15); border-color: rgba(255, 80, 80, 0.4); color: var(--accent-3); }
+.quiz-explanation {
+    display: none;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(123, 47, 247, 0.1);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-left: 3px solid var(--accent-2);
+}
+.quiz-explanation.show { display: block; }
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+.result-cell {
+    background: rgba(0,0,0,0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem;
+    text-align: center;
+    font-size: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.result-cell.header { color: var(--accent-1); font-weight: 600; border-color: rgba(0,212,255,0.2); }
+.result-cell.solved { background: rgba(0,200,100,0.1); border-color: rgba(0,200,100,0.3); color: #4ade80; }
+.result-cell.unsolved { background: rgba(255,80,80,0.05); border-color: rgba(255,80,80,0.15); color: var(--accent-3); }
+.stat-row {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+.stat-box {
+    flex: 1;
+    min-width: 150px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+}
+.stat-box .stat-val {
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.stat-box .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+@media (max-width: 768px) {
+    .hero { min-height: 50vh; padding: 2rem 1rem; }
+    .tab-content { padding: 2rem 1rem; }
+    .section { padding: 1.5rem; }
+    .viz-container { height: 300px; }
+    .tab-btn { padding: 0.75rem 1rem; font-size: 0.8rem; }
+    .result-grid { grid-template-columns: repeat(3, 1fr); }
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<div class="hero">
+    <div id="hero-canvas"></div>
+    <div class="hero-content">
+        <h1>Aletheia tackles FirstProof autonomously</h1>
+        <p class="authors">Tony Feng, Junehyuk Jung, Sang-hyun Kim, Carlo Pagano, Sergei Gukov, Chiang-Chiang Tsai, David P. Woodruff, Adel Javanmard, Aryan Mokhtari, Dawsen Hwang, Yuri Chervonyi, Jonathan N. Lee, Garrett Bingham, Trieu H. Trinh, Vahab Mirrokni, Quoc V. Le, Thang Luong</p>
+        <p class="year">2026 &middot; Google DeepMind</p>
+        <p class="abstract">An AI mathematics research agent, powered by Gemini 3 Deep Think, autonomously solved 6 out of 10 research-level math problems in the inaugural FirstProof challenge &mdash; without any human mathematical guidance.</p>
+    </div>
+</div>
+
+<!-- ════════════════════ TAB BAR ════════════════════ -->
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="beginner">Beginner</button>
+    <button class="tab-btn" data-tab="intermediate">Intermediate</button>
+    <button class="tab-btn" data-tab="advanced">Advanced</button>
+</div>
+
+<!-- ════════════════════ BEGINNER TAB ════════════════════ -->
+<div class="tab-content active" id="tab-beginner">
+
+    <div class="section reveal">
+        <h2>Why Should You Care?</h2>
+        <p>Imagine a world where AI can do original mathematical research &mdash; not just solve homework problems, but tackle <span class="highlight">unsolved questions</span> that even professional mathematicians find challenging.</p>
+        <p>In February 2026, Google DeepMind's <span class="highlight">Aletheia</span> agent did exactly that. Given 10 research-level math problems (some never solved before), it autonomously solved 6 of them in just 8 days &mdash; submitting 52 minutes before the deadline.</p>
+        <p>This is like a chess computer, but for mathematical creativity. It doesn't just verify proofs &mdash; it <em>invents</em> them.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>The Big Idea: A Mathematical Research Assistant</h2>
+        <p>Think of Aletheia as a tireless mathematician with two brains working together:</p>
+        <ul>
+            <li><span class="highlight">The Generator</span> &mdash; like a creative artist who brainstorms possible solutions</li>
+            <li><span class="highlight">The Verifier</span> &mdash; like a strict editor who checks every line of reasoning</li>
+        </ul>
+        <p>Here's the clever part: if Aletheia isn't confident in a solution, it says <em>"I don't know"</em> rather than guessing. This <span class="highlight">self-filtering</span> means you can trust what it does produce. Of the 6 problems it submitted answers for, experts confirmed all of them were correct (with one minor debate).</p>
+
+        <div class="viz-container" id="viz-beginner-1">
+            <div class="viz-label">Agent Architecture</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Scroll to zoom &middot; Watch data flow through the pipeline</p></div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">The 3D graph above shows how problems flow through Aletheia: from input (left) through the Generator and Verifier stages (center) to expert-validated output (right). Glowing particles represent candidate solutions moving through the pipeline.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>The Scoreboard</h2>
+        <p>Here's how Aletheia performed on each of the 10 FirstProof problems:</p>
+        <div class="stat-row">
+            <div class="stat-box">
+                <div class="stat-val">6/10</div>
+                <div class="stat-label">Problems Solved</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val">8 days</div>
+                <div class="stat-label">Time Given</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val">52 min</div>
+                <div class="stat-label">Before Deadline</div>
+            </div>
+        </div>
+        <div class="result-grid">
+            <div class="result-cell header">P1</div>
+            <div class="result-cell header">P2</div>
+            <div class="result-cell header">P3</div>
+            <div class="result-cell header">P4</div>
+            <div class="result-cell header">P5</div>
+            <div class="result-cell unsolved">No solution</div>
+            <div class="result-cell solved">Solved</div>
+            <div class="result-cell unsolved">No solution</div>
+            <div class="result-cell unsolved">No solution</div>
+            <div class="result-cell solved">Solved</div>
+            <div class="result-cell header">P6</div>
+            <div class="result-cell header">P7</div>
+            <div class="result-cell header">P8</div>
+            <div class="result-cell header">P9</div>
+            <div class="result-cell header">P10</div>
+            <div class="result-cell unsolved">No solution</div>
+            <div class="result-cell solved">Solved</div>
+            <div class="result-cell solved">Solved*</div>
+            <div class="result-cell solved">Solved</div>
+            <div class="result-cell solved">Solved</div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.8rem;">*Problem 8 had non-unanimous expert assessment (5 of 7 agreed it was correct).</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Key Takeaway</h2>
+        <p>AI can now autonomously produce original, expert-verified mathematical research &mdash; not by memorizing solutions, but by <span class="highlight">reasoning through novel problems</span> using a generate-then-verify strategy with built-in honesty about what it doesn't know.</p>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: What makes Aletheia different from an AI that just solves math homework?</p>
+            <button class="quiz-option" data-correct="false">A) It uses a bigger dataset of math problems</button>
+            <button class="quiz-option" data-correct="true">B) It solves research-level problems that don't have known solutions</button>
+            <button class="quiz-option" data-correct="false">C) It runs faster than other math AIs</button>
+            <div class="quiz-explanation">Aletheia tackled problems from the FirstProof challenge &mdash; research-level questions where the answer wasn't known in advance. This is fundamentally different from solving textbook problems with known answers.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: What does Aletheia do when it's not confident in a solution?</p>
+            <button class="quiz-option" data-correct="false">A) It submits its best guess anyway</button>
+            <button class="quiz-option" data-correct="false">B) It asks a human for help</button>
+            <button class="quiz-option" data-correct="true">C) It reports "No solution found" and moves on</button>
+            <div class="quiz-explanation">Self-filtering is one of Aletheia's key design choices. Rather than producing potentially incorrect solutions, it honestly reports when it can't solve a problem. This made its actual submissions highly reliable.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q3: How many of the 10 FirstProof problems did Aletheia solve?</p>
+            <button class="quiz-option" data-correct="false">A) All 10</button>
+            <button class="quiz-option" data-correct="true">B) 6 out of 10</button>
+            <button class="quiz-option" data-correct="false">C) 3 out of 10</button>
+            <div class="quiz-explanation">Aletheia solved problems 2, 5, 7, 8, 9, and 10 (6 out of 10). For the remaining 4, it returned "No solution found" via its self-filtering mechanism.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════ INTERMEDIATE TAB ════════════════════ -->
+<div class="tab-content" id="tab-intermediate">
+
+    <div class="section reveal">
+        <h2>How It Works: The Aletheia Pipeline</h2>
+        <p>Aletheia uses a <span class="highlight">Generator-Verifier architecture</span> built on top of Gemini 3 Deep Think. The pipeline processes each problem independently:</p>
+        <h3>Step 1: Problem Ingestion</h3>
+        <p>Each FirstProof problem is provided as a LaTeX-formatted mathematical statement. Aletheia receives the raw problem with no hints, references, or human guidance.</p>
+        <h3>Step 2: Solution Generation</h3>
+        <p>The Generator subagent produces candidate solutions. It operates autonomously, using chain-of-thought reasoning to explore proof strategies. Two independent agents (Aletheia A and B) run in parallel using different model checkpoints:</p>
+        <ul>
+            <li><span class="highlight">Aletheia A</span>: February 2026 Gemini 3 Deep Think</li>
+            <li><span class="highlight">Aletheia B</span>: January 2026 Gemini base model</li>
+        </ul>
+        <h3>Step 3: Verification</h3>
+        <p>A separate Verification prompt examines each candidate line-by-line. It produces one of three verdicts:</p>
+        <ul>
+            <li><span style="color: #4ade80;">[CORRECT]</span> &mdash; Solution is mathematically valid</li>
+            <li><span style="color: var(--accent-3);">[WRONG]</span> &mdash; Solution contains fundamental errors</li>
+            <li><span style="color: var(--accent-1);">[FIXABLE]</span> &mdash; Minor issues; a complete rewrite is produced</li>
+        </ul>
+        <h3>Step 4: Self-Filtering &amp; Selection</h3>
+        <p>Solutions that fail verification are discarded. If neither agent produces a verified solution, Aletheia returns "No solution found." The best verified solution is selected (best-of-2 strategy).</p>
+
+        <div class="viz-container" id="viz-intermediate-1">
+            <div class="viz-label">Verification Flow</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Green particles = accepted solutions &middot; Red = rejected</p></div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Key Equations: The Mathematics Behind the Problems</h2>
+        <p>While Aletheia works across diverse mathematical fields, here are the core formulations for the problems it solved:</p>
+
+        <h3>Problem 2: Rankin-Selberg Integral (Representation Theory)</h3>
+        <div class="math-block">
+            $$ Z(s, W, V) = \int_{N_n \backslash G_n(F)} W\left(\begin{pmatrix} g & 0 \\ 0 & 1 \end{pmatrix} u_Q\right) V(g) \, |\det g|^{s - \frac{1}{2}} \, dg $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(W\)</span> <span class="var-desc">Whittaker function</span></span>
+                <span class="var-chip"><span class="var-symbol">\(V\)</span> <span class="var-desc">test vector</span></span>
+                <span class="var-chip"><span class="var-symbol">\(s\)</span> <span class="var-desc">complex parameter</span></span>
+                <span class="var-chip"><span class="var-symbol">\(G_n\)</span> <span class="var-desc">reductive group</span></span>
+            </div>
+        </div>
+
+        <h3>Problem 9: Multilinear Determinant (Algebra)</h3>
+        <div class="math-block">
+            $$ Q^{(\alpha\beta\gamma\delta)}_{ijkl} = \det \begin{pmatrix} A^{(\alpha)}_{i,1} & A^{(\alpha)}_{i,2} & A^{(\alpha)}_{i,3} & A^{(\alpha)}_{i,4} \\ A^{(\beta)}_{j,1} & A^{(\beta)}_{j,2} & A^{(\beta)}_{j,3} & A^{(\beta)}_{j,4} \\ A^{(\gamma)}_{k,1} & A^{(\gamma)}_{k,2} & A^{(\gamma)}_{k,3} & A^{(\gamma)}_{k,4} \\ A^{(\delta)}_{l,1} & A^{(\delta)}_{l,2} & A^{(\delta)}_{l,3} & A^{(\delta)}_{l,4} \end{pmatrix} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(A^{(\alpha)}\)</span> <span class="var-desc">matrix slice \(\alpha\)</span></span>
+                <span class="var-chip"><span class="var-symbol">\(i,j,k,l\)</span> <span class="var-desc">row indices</span></span>
+                <span class="var-chip"><span class="var-symbol">\(Q\)</span> <span class="var-desc">4-tensor determinant</span></span>
+            </div>
+        </div>
+
+        <h3>Problem 5: O-Slice Connectivity (Equivariant Homotopy)</h3>
+        <div class="math-block">
+            $$ \|J\|_O := [J : J_O] \qquad \text{and} \qquad \dim(V^J) \geq \frac{\dim(V)}{\|J\|_O} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(\|J\|_O\)</span> <span class="var-desc">O-index of subgroup \(J\)</span></span>
+                <span class="var-chip"><span class="var-symbol">\(V^J\)</span> <span class="var-desc">fixed-point subspace</span></span>
+                <span class="var-chip"><span class="var-symbol">\(J_O\)</span> <span class="var-desc">intersection with \(O\)</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Inference Cost as Difficulty Signal</h2>
+        <p>An interesting finding: the computational cost required to solve each problem correlates with its difficulty. Explore how inference cost scales with problem complexity:</p>
+        <div class="viz-container" id="viz-intermediate-2">
+            <div class="viz-label">Inference Cost Landscape</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Height = inference cost &middot; Color = difficulty</p></div>
+        </div>
+        <div class="slider-controls">
+            <div class="slider-group">
+                <label>Cost Scaling Factor <span id="val-cost-scale">1.0</span></label>
+                <input type="range" id="slider-cost-scale" min="0.1" max="3" step="0.1" value="1.0"
+                       oninput="document.getElementById('val-cost-scale').textContent=parseFloat(this.value).toFixed(1); if(window.onSlider_costScale) window.onSlider_costScale(+this.value)">
+            </div>
+            <div class="slider-group">
+                <label>Problem Complexity <span id="val-complexity">5</span></label>
+                <input type="range" id="slider-complexity" min="1" max="10" step="1" value="5"
+                       oninput="document.getElementById('val-complexity').textContent=this.value; if(window.onSlider_complexity) window.onSlider_complexity(+this.value)">
+            </div>
+        </div>
+        <p>Problem 7 (topology) was particularly notable &mdash; it required <span class="highlight">10x more compute</span> than the baseline, reflecting that it was a previously unsolved open problem from Weinberger's book.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Connections to Prior Work</h2>
+        <p>Aletheia builds on a trajectory of AI reasoning milestones:</p>
+        <ul>
+            <li><span class="highlight">AlphaProof (2024)</span> &mdash; DeepMind's IMO-level theorem prover using formal verification</li>
+            <li><span class="highlight">GPT-4 math reasoning</span> &mdash; Strong performance on competition math but limited on research problems</li>
+            <li><span class="highlight">Lean/Coq provers</span> &mdash; Formal verification systems that require structured input</li>
+        </ul>
+        <p>Aletheia's key advance is operating in <em>natural language mathematics</em> (LaTeX proofs) rather than formal languages, and tackling <em>open research questions</em> rather than competition problems with known solutions.</p>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: What are the three possible verdicts from Aletheia's Verifier?</p>
+            <button class="quiz-option" data-correct="false">A) Easy, Medium, Hard</button>
+            <button class="quiz-option" data-correct="true">B) CORRECT, WRONG, FIXABLE</button>
+            <button class="quiz-option" data-correct="false">C) Accept, Reject, Revise</button>
+            <div class="quiz-explanation">The Verifier examines each solution line-by-line and produces exactly one of three verdicts: [CORRECT] (valid), [WRONG] (fundamental errors), or [FIXABLE] (minor issues, triggers a rewrite).</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: Why does Aletheia run two independent agents (A and B)?</p>
+            <button class="quiz-option" data-correct="true">A) To increase the chance of finding a valid solution (best-of-2 strategy)</button>
+            <button class="quiz-option" data-correct="false">B) To make the system run faster through parallelism</button>
+            <button class="quiz-option" data-correct="false">C) Agent B verifies Agent A's work</button>
+            <div class="quiz-explanation">Running two agents with different model checkpoints is a best-of-2 strategy. Each agent independently attempts the problem, and the best verified solution is selected. This is analogous to having two mathematicians independently work on the same problem.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q3: What does high inference cost tell us about a problem?</p>
+            <button class="quiz-option" data-correct="false">A) The problem statement is longer</button>
+            <button class="quiz-option" data-correct="false">B) The problem requires more memory</button>
+            <button class="quiz-option" data-correct="true">C) The problem is likely harder and requires more reasoning steps</button>
+            <div class="quiz-explanation">Inference cost serves as an interpretable "difficulty signal." Problem 7, a previously unsolved open problem, required 10x more compute than the baseline Erdos-1051 benchmark, directly reflecting its greater mathematical difficulty.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q4: How does Aletheia differ from formal theorem provers like Lean?</p>
+            <button class="quiz-option" data-correct="true">A) It works in natural language (LaTeX) rather than a formal proof language</button>
+            <button class="quiz-option" data-correct="false">B) It can only solve easier problems</button>
+            <button class="quiz-option" data-correct="false">C) It requires human guidance at each step</button>
+            <div class="quiz-explanation">Aletheia operates in natural mathematical language (LaTeX proofs), which is how human mathematicians actually write. Formal provers like Lean require translation into a structured formal language, adding a significant overhead.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════ ADVANCED TAB ════════════════════ -->
+<div class="tab-content" id="tab-advanced">
+
+    <div class="section reveal">
+        <h2>Technical Deep Dive: Generator-Verifier Architecture</h2>
+        <p>The Aletheia system implements a <span class="highlight">two-stage pipeline with self-filtering</span>. Let's formalize this.</p>
+
+        <h3>Formal Problem Statement</h3>
+        <p>Given a research-level mathematical problem \(P\) (as LaTeX), produce a proof \(\pi\) such that:</p>
+        <div class="math-block">
+            $$ \text{Aletheia}(P) = \begin{cases} \pi^* & \text{if } \exists\, \pi \in \Pi(P) : V(\pi) = \texttt{CORRECT} \\ \texttt{null} & \text{otherwise} \end{cases} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(\Pi(P)\)</span> <span class="var-desc">candidate proof set</span></span>
+                <span class="var-chip"><span class="var-symbol">\(V(\pi)\)</span> <span class="var-desc">verifier verdict</span></span>
+                <span class="var-chip"><span class="var-symbol">\(\pi^*\)</span> <span class="var-desc">best verified proof</span></span>
+            </div>
+        </div>
+
+        <h3>Best-of-N Strategy</h3>
+        <p>With \(N=2\) agents running independently on different model checkpoints \(\theta_A, \theta_B\):</p>
+        <div class="math-block">
+            $$
+            \begin{aligned}
+            \pi_A &\sim G(\cdot \mid P; \theta_A) \\
+            \pi_B &\sim G(\cdot \mid P; \theta_B) \\
+            \pi^* &= \arg\max_{\pi \in \{\pi_A, \pi_B\}} \mathbb{1}[V(\pi) = \texttt{CORRECT}]
+            \end{aligned}
+            $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(G\)</span> <span class="var-desc">generator distribution</span></span>
+                <span class="var-chip"><span class="var-symbol">\(\theta_A, \theta_B\)</span> <span class="var-desc">model checkpoints</span></span>
+            </div>
+        </div>
+
+        <h3>Verification Prompt Design</h3>
+        <p>The verification stage is critical. It uses a structured prompt that enforces line-by-line examination:</p>
+        <div class="math-block">
+            $$
+            V(\pi) = \text{LLM}\Big(\underbrace{\text{``Examine each step..."}}_{\text{system prompt}} \;\|\; \underbrace{P}_{\text{problem}} \;\|\; \underbrace{\pi}_{\text{candidate}}\Big) \in \{\texttt{CORRECT}, \texttt{WRONG}, \texttt{FIXABLE}\}
+            $$
+        </div>
+        <p>When the verdict is <code>[FIXABLE]</code>, the verifier produces a complete rewrite \(\pi'\) rather than patching the original &mdash; eliminating error propagation from partial fixes.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Inference Cost Analysis</h2>
+        <p>The paper reveals that inference cost scales non-linearly with problem difficulty. Defining cost ratio relative to the Erdos-1051 baseline:</p>
+        <div class="math-block">
+            $$ R(P_i) = \frac{C_{\text{Aletheia}}(P_i)}{C_{\text{Erdos-1051}}} $$
+            <div class="var-chips">
+                <span class="var-chip"><span class="var-symbol">\(R\)</span> <span class="var-desc">cost ratio</span></span>
+                <span class="var-chip"><span class="var-symbol">\(C\)</span> <span class="var-desc">inference compute</span></span>
+            </div>
+        </div>
+        <p>Problem 7 (an open problem from Weinberger's book on surgery theory) had \(R \gg 10\), making it the most computationally expensive problem to solve.</p>
+
+        <div class="viz-container" id="viz-advanced-1">
+            <div class="viz-label">Problem Difficulty Space</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Size = inference cost &middot; Color = field of mathematics</p></div>
+        </div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Implementation Sketch</h2>
+        <p>A simplified pseudocode implementation of the core Aletheia pipeline:</p>
+        <div class="code-block"><span class="kw">import</span> gemini
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+
+<span class="kw">class</span> <span class="fn">Aletheia</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, gen_model, ver_model):
+        self.generator = gemini.load(gen_model)
+        self.verifier  = gemini.load(ver_model)
+
+    <span class="kw">def</span> <span class="fn">solve</span>(self, problem: str) -> Optional[str]:
+        <span class="cm"># Step 1: Generate candidate proof</span>
+        candidate = self.generator.generate(
+            system=<span class="st">"You are a research mathematician..."</span>,
+            prompt=problem,
+            max_tokens=<span class="num">32000</span>
+        )
+        <span class="cm"># Step 2: Verify line-by-line</span>
+        verdict = self.verifier.generate(
+            system=<span class="st">"Examine each step for correctness..."</span>,
+            prompt=f<span class="st">"{problem}\n\nCandidate:\n{candidate}"</span>
+        )
+        <span class="cm"># Step 3: Self-filter</span>
+        <span class="kw">if</span> <span class="st">"[CORRECT]"</span> <span class="kw">in</span> verdict:
+            <span class="kw">return</span> candidate
+        <span class="kw">elif</span> <span class="st">"[FIXABLE]"</span> <span class="kw">in</span> verdict:
+            <span class="kw">return</span> self._extract_rewrite(verdict)
+        <span class="kw">return</span> <span class="kw">None</span>  <span class="cm"># "No solution found"</span>
+
+<span class="cm"># Best-of-2 strategy</span>
+a = <span class="fn">Aletheia</span>(<span class="st">"gemini-3-deep-think-feb"</span>, <span class="st">"gemini-3-deep-think-feb"</span>)
+b = <span class="fn">Aletheia</span>(<span class="st">"gemini-3-deep-think-jan"</span>, <span class="st">"gemini-3-deep-think-jan"</span>)
+
+<span class="kw">for</span> problem <span class="kw">in</span> firstproof_problems:
+    sol_a = a.solve(problem)
+    sol_b = b.solve(problem)
+    best  = sol_a <span class="kw">or</span> sol_b  <span class="cm"># Prefer verified solution</span></div>
+    </div>
+
+    <div class="section reveal">
+        <h2>Ablation: What If We Remove Self-Filtering?</h2>
+        <p>The paper doesn't explicitly run this ablation, but we can reason about it. Without self-filtering, Aletheia would submit 10/10 solutions. The question is: how many of those would be correct?</p>
+        <div class="viz-container" id="viz-advanced-2">
+            <div class="viz-label">Self-Filtering Impact</div>
+            <div class="viz-overlay"><p>Drag to rotate &middot; Adjust threshold below</p></div>
+        </div>
+        <div class="slider-controls">
+            <div class="slider-group">
+                <label>Confidence Threshold <span id="val-threshold">0.7</span></label>
+                <input type="range" id="slider-threshold" min="0" max="1" step="0.05" value="0.7"
+                       oninput="document.getElementById('val-threshold').textContent=parseFloat(this.value).toFixed(2); if(window.onSlider_threshold) window.onSlider_threshold(+this.value)">
+            </div>
+        </div>
+        <p>At the current threshold, the system achieves <span class="highlight">6/6 precision</span> (100% of submitted solutions are correct). Lowering the threshold would submit more solutions but risk lower precision. This precision-recall tradeoff is fundamental to reliable AI reasoning systems.</p>
+    </div>
+
+    <div class="section reveal">
+        <h2>Open Questions</h2>
+        <ul>
+            <li><span class="highlight">Scaling laws for mathematical reasoning</span>: How does inference cost relate to problem difficulty in a formal, predictable way? Can we build a "difficulty predictor"?</li>
+            <li><span class="highlight">Formal verification integration</span>: Could Aletheia's natural-language proofs be automatically translated to Lean/Coq for machine-checkable verification?</li>
+            <li><span class="highlight">Multi-problem reasoning</span>: Aletheia treats each problem independently. Could cross-problem insight transfer improve performance?</li>
+            <li><span class="highlight">Citation and attribution</span>: The paper acknowledges that citation standards don't meet FirstProof requirements. How should AI-generated proofs cite prior work?</li>
+            <li><span class="highlight">Optimal N for best-of-N</span>: With N=2, Aletheia solved 6/10. What is the expected gain from N=4, N=8, or higher?</li>
+        </ul>
+    </div>
+
+    <div class="quiz reveal">
+        <h3>Test Your Understanding</h3>
+        <div class="quiz-question">
+            <p class="q-text">Q1: In the formal pipeline, what happens when the verifier returns [FIXABLE]?</p>
+            <button class="quiz-option" data-correct="false">A) The original proof is patched at the error location</button>
+            <button class="quiz-option" data-correct="true">B) A complete rewrite is produced from scratch</button>
+            <button class="quiz-option" data-correct="false">C) The problem is sent back to the generator</button>
+            <div class="quiz-explanation">When the verdict is [FIXABLE], the verifier produces a complete rewrite rather than patching. This design choice eliminates error propagation that could occur from partial modifications to a flawed proof.</div>
+        </div>
+        <div class="quiz-question">
+            <p class="q-text">Q2: Why might increasing N in the best-of-N strategy have diminishing returns?</p>
+            <button class="quiz-option" data-correct="false">A) More agents require more memory</button>
+            <button class="quiz-option" data-correct="true">B) If the model fundamentally cannot solve a problem, more attempts from the same distribution won't help</button>
+            <button class="quiz-option" data-correct="false">C) The verifier becomes less accurate with more candidates</button>
+            <div class="quiz-explanation">Best-of-N samples from the same generator distribution. If a problem lies outside the model's capability boundary (as with problems 1, 3, 4, 6), no number of independent samples will produce a correct solution. This is why different model checkpoints (theta_A vs theta_B) are used &mdash; they sample from slightly different distributions.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════ SCRIPTS ════════════════════ -->
+<script>
+// ── Active Scenes Tracking ──
+const activeScenes = [];
+
+function createScene(containerId, setupFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+    camera.position.set(0, 2, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x08080d, 1);
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 5);
+    scene.add(dirLight);
+    const ptLight = new THREE.PointLight(0x00d4ff, 0.5, 50);
+    ptLight.position.set(-5, 5, -5);
+    scene.add(ptLight);
+
+    const userState = setupFn(scene, camera, renderer, controls) || {};
+
+    let animationId;
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        controls.update();
+        if (userState.onAnimate) userState.onAnimate();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    function onResize() {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    }
+    window.addEventListener('resize', onResize);
+
+    const sceneData = {
+        scene, camera, renderer, controls, animationId, container, onResize,
+        dispose() {
+            cancelAnimationFrame(this.animationId);
+            window.removeEventListener('resize', this.onResize);
+            this.controls.dispose();
+            this.renderer.dispose();
+            this.scene.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+            });
+            if (this.container.contains(this.renderer.domElement))
+                this.container.removeChild(this.renderer.domElement);
+        }
+    };
+    activeScenes.push(sceneData);
+    return sceneData;
+}
+
+function cleanupScenes() {
+    while (activeScenes.length > 0) activeScenes.pop().dispose();
+}
+
+// ── Scene Builders ──
+
+function buildBeginnerScenes() {
+    // Agent Architecture Graph
+    createScene('viz-beginner-1', (scene, camera) => {
+        camera.position.set(0, 3, 12);
+
+        const layers = [
+            { label: 'Problem', count: 1, x: -8, color: 0x00d4ff },
+            { label: 'Generator', count: 3, x: -3, color: 0x7b2ff7 },
+            { label: 'Verifier', count: 2, x: 2, color: 0xff6b6b },
+            { label: 'Output', count: 1, x: 7, color: 0x4ade80 }
+        ];
+
+        const allNodes = [];
+        layers.forEach(layer => {
+            for (let i = 0; i < layer.count; i++) {
+                const y = (i - (layer.count - 1) / 2) * 2.5;
+                const geo = new THREE.SphereGeometry(0.4, 16, 16);
+                const mat = new THREE.MeshPhongMaterial({ color: layer.color, emissive: layer.color, emissiveIntensity: 0.3 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(layer.x, y, 0);
+                scene.add(mesh);
+                allNodes.push({ mesh, layer: layer.label });
+
+                // Glow
+                const sMat = new THREE.SpriteMaterial({ color: layer.color, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+                const sprite = new THREE.Sprite(sMat);
+                sprite.scale.set(2, 2, 1);
+                sprite.position.copy(mesh.position);
+                scene.add(sprite);
+            }
+        });
+
+        // Edges
+        const edges = [];
+        const layerNodes = [];
+        let idx = 0;
+        layers.forEach(l => {
+            const nodes = [];
+            for (let i = 0; i < l.count; i++) nodes.push(allNodes[idx++]);
+            layerNodes.push(nodes);
+        });
+
+        for (let li = 0; li < layerNodes.length - 1; li++) {
+            for (const a of layerNodes[li]) {
+                for (const b of layerNodes[li + 1]) {
+                    const pts = [a.mesh.position.clone(), b.mesh.position.clone()];
+                    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08 });
+                    scene.add(new THREE.Line(geo, mat));
+                    edges.push({ from: a.mesh.position, to: b.mesh.position });
+                }
+            }
+        }
+
+        // Flow particles
+        const pCount = 60;
+        const pPos = new Float32Array(pCount * 3);
+        const pProgress = new Float32Array(pCount);
+        const pEdge = new Uint16Array(pCount);
+        for (let i = 0; i < pCount; i++) {
+            pEdge[i] = Math.floor(Math.random() * edges.length);
+            pProgress[i] = Math.random();
+        }
+        const pGeo = new THREE.BufferGeometry();
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({ color: 0x00d4ff, size: 0.1, transparent: true, opacity: 0.7 });
+        scene.add(new THREE.Points(pGeo, pMat));
+
+        // Labels
+        function makeLabel(text, color) {
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('2d');
+            c.width = 256; c.height = 64;
+            ctx.font = 'bold 28px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = color;
+            ctx.fillText(text, 128, 32);
+            const tex = new THREE.CanvasTexture(c);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            const s = new THREE.Sprite(mat);
+            s.scale.set(3, 0.75, 1);
+            return s;
+        }
+        const labels = [
+            { text: 'Problem', x: -8, y: -2.5, color: '#00d4ff' },
+            { text: 'Generator', x: -3, y: -4.5, color: '#7b2ff7' },
+            { text: 'Verifier', x: 2, y: -3.5, color: '#ff6b6b' },
+            { text: 'Output', x: 7, y: -2.5, color: '#4ade80' }
+        ];
+        labels.forEach(l => {
+            const s = makeLabel(l.text, l.color);
+            s.position.set(l.x, l.y, 0);
+            scene.add(s);
+        });
+
+        return {
+            onAnimate() {
+                for (let i = 0; i < pCount; i++) {
+                    pProgress[i] += 0.004;
+                    if (pProgress[i] > 1) { pProgress[i] = 0; pEdge[i] = Math.floor(Math.random() * edges.length); }
+                    const e = edges[pEdge[i]];
+                    const t = pProgress[i];
+                    pPos[i * 3]     = e.from.x + (e.to.x - e.from.x) * t;
+                    pPos[i * 3 + 1] = e.from.y + (e.to.y - e.from.y) * t;
+                    pPos[i * 3 + 2] = e.from.z + (e.to.z - e.from.z) * t;
+                }
+                pGeo.attributes.position.needsUpdate = true;
+            }
+        };
+    });
+}
+
+function buildIntermediateScenes() {
+    // Verification Flow (network with accept/reject paths)
+    createScene('viz-intermediate-1', (scene, camera) => {
+        camera.position.set(0, 4, 10);
+
+        // Generator nodes (left)
+        const genNodes = [];
+        for (let i = 0; i < 4; i++) {
+            const geo = new THREE.SphereGeometry(0.35, 16, 16);
+            const mat = new THREE.MeshPhongMaterial({ color: 0x7b2ff7, emissive: 0x7b2ff7, emissiveIntensity: 0.3 });
+            const m = new THREE.Mesh(geo, mat);
+            m.position.set(-4, (i - 1.5) * 2, 0);
+            scene.add(m);
+            genNodes.push(m);
+        }
+
+        // Verifier node (center)
+        const verGeo = new THREE.OctahedronGeometry(0.6, 1);
+        const verMat = new THREE.MeshPhongMaterial({ color: 0x00d4ff, emissive: 0x00d4ff, emissiveIntensity: 0.4 });
+        const verifier = new THREE.Mesh(verGeo, verMat);
+        verifier.position.set(0, 0, 0);
+        scene.add(verifier);
+
+        // Accept node (right-top)
+        const accGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const accMat = new THREE.MeshPhongMaterial({ color: 0x4ade80, emissive: 0x4ade80, emissiveIntensity: 0.3 });
+        const accept = new THREE.Mesh(accGeo, accMat);
+        accept.position.set(5, 2, 0);
+        scene.add(accept);
+
+        // Reject node (right-bottom)
+        const rejGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const rejMat = new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0xff6b6b, emissiveIntensity: 0.3 });
+        const reject = new THREE.Mesh(rejGeo, rejMat);
+        reject.position.set(5, -2, 0);
+        scene.add(reject);
+
+        // Edges
+        const edges = [];
+        genNodes.forEach(n => {
+            edges.push({ from: n.position, to: verifier.position, type: 'input' });
+        });
+        edges.push({ from: verifier.position, to: accept.position, type: 'accept' });
+        edges.push({ from: verifier.position, to: reject.position, type: 'reject' });
+
+        edges.forEach(e => {
+            const pts = [e.from.clone(), e.to.clone()];
+            const geo = new THREE.BufferGeometry().setFromPoints(pts);
+            const color = e.type === 'accept' ? 0x4ade80 : e.type === 'reject' ? 0xff6b6b : 0xffffff;
+            const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.12 });
+            scene.add(new THREE.Line(geo, mat));
+        });
+
+        // Flow particles
+        const pCount = 40;
+        const pPos = new Float32Array(pCount * 3);
+        const pColors = new Float32Array(pCount * 3);
+        const pProg = new Float32Array(pCount);
+        const pEdgeIdx = new Uint16Array(pCount);
+        for (let i = 0; i < pCount; i++) {
+            pEdgeIdx[i] = Math.floor(Math.random() * edges.length);
+            pProg[i] = Math.random();
+        }
+        const pGeo = new THREE.BufferGeometry();
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        pGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+        const pMat = new THREE.PointsMaterial({ size: 0.1, vertexColors: true, transparent: true, opacity: 0.8 });
+        scene.add(new THREE.Points(pGeo, pMat));
+
+        // Labels
+        function makeLabel(text, color) {
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('2d');
+            c.width = 256; c.height = 64;
+            ctx.font = 'bold 24px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = color;
+            ctx.fillText(text, 128, 32);
+            const tex = new THREE.CanvasTexture(c);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            const s = new THREE.Sprite(mat);
+            s.scale.set(2.5, 0.6, 1);
+            return s;
+        }
+        [{ t: 'VERIFIER', x: 0, y: -1.5, c: '#00d4ff' },
+         { t: 'CORRECT', x: 5, y: 3.5, c: '#4ade80' },
+         { t: 'WRONG', x: 5, y: -3.5, c: '#ff6b6b' }].forEach(l => {
+            const s = makeLabel(l.t, l.c);
+            s.position.set(l.x, l.y, 0);
+            scene.add(s);
+        });
+
+        return {
+            onAnimate() {
+                verifier.rotation.y += 0.01;
+                verifier.rotation.x += 0.005;
+                for (let i = 0; i < pCount; i++) {
+                    pProg[i] += 0.005;
+                    if (pProg[i] > 1) {
+                        pProg[i] = 0;
+                        pEdgeIdx[i] = Math.floor(Math.random() * edges.length);
+                    }
+                    const e = edges[pEdgeIdx[i]];
+                    const t = pProg[i];
+                    pPos[i * 3]     = e.from.x + (e.to.x - e.from.x) * t;
+                    pPos[i * 3 + 1] = e.from.y + (e.to.y - e.from.y) * t;
+                    pPos[i * 3 + 2] = 0;
+                    const c = e.type === 'accept' ? [0.29, 0.87, 0.5] : e.type === 'reject' ? [1, 0.42, 0.42] : [0, 0.83, 1];
+                    pColors[i * 3] = c[0]; pColors[i * 3 + 1] = c[1]; pColors[i * 3 + 2] = c[2];
+                }
+                pGeo.attributes.position.needsUpdate = true;
+                pGeo.attributes.color.needsUpdate = true;
+            }
+        };
+    });
+
+    // Inference Cost Landscape
+    let costScaleFactor = 1.0;
+    let complexityVal = 5;
+    createScene('viz-intermediate-2', (scene, camera) => {
+        camera.position.set(8, 8, 8);
+
+        // Surface plot: cost as function of two difficulty dimensions
+        const res = 50;
+        const geo = new THREE.PlaneGeometry(10, 10, res, res);
+        const pos = geo.attributes.position.array;
+        const colors = new Float32Array(pos.length);
+
+        function updateSurface() {
+            let yMin = Infinity, yMax = -Infinity;
+            for (let i = 0; i < pos.length / 3; i++) {
+                const x = pos[i * 3];
+                const z = pos[i * 3 + 1];
+                const y = costScaleFactor * (Math.exp(0.3 * (x + z) * complexityVal / 10) * 0.1 +
+                    Math.sin(x * 0.8) * Math.cos(z * 0.6) * 0.5 +
+                    Math.random() * 0.05);
+                pos[i * 3 + 2] = y;
+                yMin = Math.min(yMin, y); yMax = Math.max(yMax, y);
+            }
+            for (let i = 0; i < pos.length / 3; i++) {
+                const t = (pos[i * 3 + 2] - yMin) / (yMax - yMin || 1);
+                colors[i * 3] = t;
+                colors[i * 3 + 1] = 0.2 + 0.3 * (1 - Math.abs(t - 0.5) * 2);
+                colors[i * 3 + 2] = 1 - t;
+            }
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geo.attributes.position.needsUpdate = true;
+            geo.attributes.color.needsUpdate = true;
+            geo.computeVertexNormals();
+        }
+        updateSurface();
+        geo.rotateX(-Math.PI / 2);
+
+        const mat = new THREE.MeshPhongMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true, opacity: 0.85, shininess: 40 });
+        const mesh = new THREE.Mesh(geo, mat);
+        scene.add(mesh);
+
+        const wire = new THREE.LineSegments(
+            new THREE.WireframeGeometry(geo),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06 })
+        );
+        scene.add(wire);
+
+        window.onSlider_costScale = (v) => { costScaleFactor = v; updateSurface(); geo.rotateX(0); };
+        window.onSlider_complexity = (v) => { complexityVal = v; updateSurface(); geo.rotateX(0); };
+
+        return { onAnimate() {} };
+    });
+}
+
+function buildAdvancedScenes() {
+    // Problem Difficulty Space (3D scatter)
+    createScene('viz-advanced-1', (scene, camera) => {
+        camera.position.set(6, 4, 8);
+
+        const problems = [
+            { x: -3, y: 0.5, z: 1, cost: 0.3, solved: false, label: 'P1', field: 'unknown' },
+            { x: 1, y: 2, z: -1, cost: 1.2, solved: true, label: 'P2', field: 'rep-theory' },
+            { x: -2, y: 0.3, z: -2, cost: 0.4, solved: false, label: 'P3', field: 'unknown' },
+            { x: -1, y: 0.2, z: 2, cost: 0.5, solved: false, label: 'P4', field: 'unknown' },
+            { x: 2, y: 1.8, z: 0, cost: 1.5, solved: true, label: 'P5', field: 'homotopy' },
+            { x: -2.5, y: 0.1, z: -1, cost: 0.3, solved: false, label: 'P6', field: 'unknown' },
+            { x: 3, y: 4, z: -2, cost: 3.5, solved: true, label: 'P7', field: 'topology' },
+            { x: 2.5, y: 2.5, z: 1.5, cost: 2, solved: true, label: 'P8', field: 'symplectic' },
+            { x: 1.5, y: 1.5, z: -0.5, cost: 1, solved: true, label: 'P9', field: 'algebra' },
+            { x: 2, y: 1.2, z: 0.5, cost: 0.8, solved: true, label: 'P10', field: 'unknown' }
+        ];
+
+        const fieldColors = {
+            'rep-theory': new THREE.Color(0x00d4ff),
+            'homotopy': new THREE.Color(0x7b2ff7),
+            'topology': new THREE.Color(0xff6b6b),
+            'symplectic': new THREE.Color(0x4ade80),
+            'algebra': new THREE.Color(0xffd700),
+            'unknown': new THREE.Color(0x8888aa)
+        };
+
+        problems.forEach(p => {
+            const size = 0.15 + p.cost * 0.12;
+            const geo = new THREE.SphereGeometry(size, 16, 16);
+            const color = fieldColors[p.field] || fieldColors['unknown'];
+            const mat = new THREE.MeshPhongMaterial({
+                color, emissive: color, emissiveIntensity: p.solved ? 0.4 : 0.1,
+                transparent: !p.solved, opacity: p.solved ? 1 : 0.4
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(p.x, p.y, p.z);
+            scene.add(mesh);
+
+            // Glow for solved
+            if (p.solved) {
+                const sMat = new THREE.SpriteMaterial({ color: color.getHex(), transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+                const sprite = new THREE.Sprite(sMat);
+                sprite.scale.set(size * 4, size * 4, 1);
+                sprite.position.copy(mesh.position);
+                scene.add(sprite);
+            }
+
+            // Label
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('2d');
+            c.width = 128; c.height = 64;
+            ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = p.solved ? '#ffffff' : '#666688';
+            ctx.fillText(p.label, 64, 32);
+            const tex = new THREE.CanvasTexture(c);
+            const lMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            const lSprite = new THREE.Sprite(lMat);
+            lSprite.scale.set(1.5, 0.75, 1);
+            lSprite.position.set(p.x, p.y + size + 0.4, p.z);
+            scene.add(lSprite);
+        });
+
+        // Axes
+        const axisLen = 5;
+        [[axisLen,0,0,0xff4444,'Complexity'],[0,axisLen,0,0x44ff44,'Cost'],[0,0,axisLen,0x4444ff,'Novelty']].forEach(([x,y,z,col]) => {
+            const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(x,y,z)]);
+            const m = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.3 });
+            scene.add(new THREE.Line(g, m));
+        });
+
+        return { onAnimate() {} };
+    });
+
+    // Self-filtering ablation: precision-recall morph
+    let threshold = 0.7;
+    createScene('viz-advanced-2', (scene, camera) => {
+        camera.position.set(0, 3, 8);
+
+        // 10 bars representing problems
+        const bars = [];
+        const confidences = [0.2, 0.85, 0.15, 0.25, 0.82, 0.18, 0.78, 0.72, 0.88, 0.75];
+        const correctness = [false, true, false, false, true, false, true, true, true, true]; // ground truth
+
+        for (let i = 0; i < 10; i++) {
+            const geo = new THREE.BoxGeometry(0.6, 1, 0.6);
+            const isAbove = confidences[i] >= threshold;
+            const isCorrect = correctness[i];
+            let color;
+            if (!isAbove) color = 0x444466; // below threshold = filtered
+            else if (isCorrect) color = 0x4ade80; // above + correct = green
+            else color = 0xff6b6b; // above + wrong = red
+
+            const mat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.2 });
+            const mesh = new THREE.Mesh(geo, mat);
+            const x = (i - 4.5) * 1.0;
+            const h = confidences[i] * 4;
+            mesh.scale.y = h;
+            mesh.position.set(x, h / 2, 0);
+            scene.add(mesh);
+            bars.push({ mesh, mat, confidence: confidences[i], correct: correctness[i] });
+
+            // Problem label
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('2d');
+            c.width = 64; c.height = 64;
+            ctx.font = 'bold 28px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#8888aa';
+            ctx.fillText('P' + (i + 1), 32, 32);
+            const tex = new THREE.CanvasTexture(c);
+            const lMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            const s = new THREE.Sprite(lMat);
+            s.scale.set(0.8, 0.8, 1);
+            s.position.set(x, -0.5, 0);
+            scene.add(s);
+        }
+
+        // Threshold line
+        const threshGeo = new THREE.PlaneGeometry(12, 0.02);
+        const threshMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+        const threshMesh = new THREE.Mesh(threshGeo, threshMat);
+        threshMesh.position.set(0, threshold * 4, 0);
+        scene.add(threshMesh);
+
+        window.onSlider_threshold = (v) => {
+            threshold = v;
+            threshMesh.position.y = v * 4;
+            bars.forEach(b => {
+                const isAbove = b.confidence >= v;
+                let color;
+                if (!isAbove) color = 0x444466;
+                else if (b.correct) color = 0x4ade80;
+                else color = 0xff6b6b;
+                b.mat.color.setHex(color);
+                b.mat.emissive.setHex(color);
+            });
+        };
+
+        return { onAnimate() {} };
+    });
+}
+
+function initScenes(tabId) {
+    if (tabId === 'beginner') buildBeginnerScenes();
+    else if (tabId === 'intermediate') buildIntermediateScenes();
+    else if (tabId === 'advanced') buildAdvancedScenes();
+}
+
+// ── Tab Switching ──
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+function switchTab(tabId) {
+    cleanupScenes();
+    tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
+    tabContents.forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + tabId));
+    initScenes(tabId);
+    renderMathInElement(document.getElementById('tab-' + tabId), {
+        delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+        ],
+        throwOnError: false
+    });
+    document.querySelectorAll('#tab-' + tabId + ' .reveal').forEach(el => {
+        el.classList.remove('visible');
+        revealObserver.observe(el);
+    });
+}
+
+tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// ── Quiz System ──
+document.addEventListener('click', function(e) {
+    const option = e.target.closest('.quiz-option');
+    if (!option) return;
+    const question = option.closest('.quiz-question');
+    if (question.classList.contains('answered')) return;
+    question.classList.add('answered');
+    const isCorrect = option.dataset.correct === 'true';
+    option.classList.add(isCorrect ? 'correct' : 'incorrect');
+    if (!isCorrect) question.querySelector('[data-correct="true"]').classList.add('correct');
+    const explanation = question.querySelector('.quiz-explanation');
+    if (explanation) explanation.classList.add('show');
+});
+
+// ── Scroll Reveal ──
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ── Hero Particle Background ──
+(function initHero() {
+    const container = document.getElementById('hero-canvas');
+    if (!container) return;
+    const hero = container.closest('.hero');
+    const width = hero.clientWidth;
+    const height = hero.clientHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+    camera.position.z = 30;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x0a0a0f, 1);
+    container.appendChild(renderer.domElement);
+
+    const count = 400;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 40;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+        const t = Math.random();
+        colors[i * 3] = t * 0 + (1 - t) * 0.48;
+        colors[i * 3 + 1] = t * 0.83 + (1 - t) * 0.18;
+        colors[i * 3 + 2] = t * 1.0 + (1 - t) * 0.97;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const mat = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.6 });
+    const points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    // Add some geometric shapes floating in hero
+    const shapes = [];
+    for (let i = 0; i < 5; i++) {
+        const geos = [
+            new THREE.TetrahedronGeometry(0.8, 0),
+            new THREE.OctahedronGeometry(0.6, 0),
+            new THREE.IcosahedronGeometry(0.7, 0),
+            new THREE.TorusGeometry(0.5, 0.2, 8, 12),
+            new THREE.DodecahedronGeometry(0.6, 0)
+        ];
+        const sMat = new THREE.MeshPhongMaterial({
+            color: [0x00d4ff, 0x7b2ff7, 0xff6b6b, 0x4ade80, 0xffd700][i],
+            wireframe: true, transparent: true, opacity: 0.25
+        });
+        const m = new THREE.Mesh(geos[i], sMat);
+        m.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 15 - 10);
+        scene.add(m);
+        shapes.push(m);
+    }
+
+    const ambLight = new THREE.AmbientLight(0x404060, 0.3);
+    scene.add(ambLight);
+    const dLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dLight.position.set(5, 10, 5);
+    scene.add(dLight);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const pos = geo.attributes.position.array;
+        for (let i = 0; i < count; i++) {
+            pos[i * 3 + 1] += Math.sin(Date.now() * 0.001 + i) * 0.002;
+            pos[i * 3] += Math.cos(Date.now() * 0.0008 + i * 0.5) * 0.001;
+        }
+        geo.attributes.position.needsUpdate = true;
+        points.rotation.y += 0.0003;
+        shapes.forEach((s, i) => {
+            s.rotation.x += 0.003 + i * 0.001;
+            s.rotation.y += 0.002 + i * 0.001;
+        });
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        const w = hero.clientWidth;
+        const h = hero.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    });
+})();
+
+// ── KaTeX Initial Render ──
+document.addEventListener('DOMContentLoaded', () => {
+    renderMathInElement(document.body, {
+        delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+        ],
+        throwOnError: false
+    });
+    // Init beginner scenes by default
+    initScenes('beginner');
+});
+</script>
+</body>
+</html>
